@@ -12,7 +12,10 @@ let tree = null;
 const nodes = [ ];
 const index = new Map();
 const branches = new Map();
+const tags = new Map();
 let tail = null;
+
+branches.set(master, null); // sorting
 
 function Node (commit) {
   const id = commit.sha();
@@ -28,7 +31,8 @@ function Node (commit) {
 
   this.parents = commit.parents().map(oid => { return oid.toString(); });
   this.children = [ ];
-  this.branches = [ ];
+  this.branch = null;
+  this.tags = [ ];
 
   index.set(id, this);
 }
@@ -53,23 +57,18 @@ Node.prototype.connect = function () {
   }
 };
 
-Node.prototype.branch = function (name) {
-  if (!this.branches.includes(name)) {
-    this.branches.push(name);
-  }
-  if (name === master || !this.branches.includes(master)) {
-    for (const parent of this.parents) {
-      if (name !== 'stash' || name === 'stash' && parent.branches.length === 0) {
-        if (parent.branches.includes(name)) {
-          break;
-        }
+Node.prototype.setBranch = function (name) {
+  if (!this.branch) {
+    this.branch = name;
 
-        parent.branch(name);
-      } else {
-        console.log('*parent', this.sha, parent);
-      }
+    for (const parent of this.parents) {
+      parent.setBranch(name);
     }
   }
+};
+
+Node.prototype.addTag = function(tag) {
+  this.tags.push(tag);
 };
 
 nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
@@ -87,6 +86,13 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
                   replace(/^refs\/stash$/, 'stash');
 
                 branches.set(name, oid.toString());
+                console.log(name, '->', oid.toString());
+              });
+          } else if (reference.isTag()) {
+            return nodegit.Reference.nameToId(repo, name).
+              then((oid) => {
+                name = name.replace(/^refs\/tags\//, '');
+                tags.set(name, oid.toString());
                 console.log(name, '->', oid.toString());
               });
           }
@@ -128,15 +134,27 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
   then(() => {
     console.log('branching');
     for (const [ name, sha ] of branches) {
+      console.log('branch', name);
       if (index.has(sha)) {
         const node = index.get(sha);
-        node.branch(name);
+        node.setBranch(name);
+      }
+    }
+  }).
+  then(() => {
+    console.log('tagging');
+    for (const [ name, sha ] of tags) {
+      console.log('tag', name);
+      if (index.has(sha)) {
+        const node = index.get(sha);
+        node.addTag(name);
       }
     }
   }).
   then(() => {
     for (const [ , item ] of index) {
-      console.log(item.short, item.parents.length, item.children.length, item.branches.join(', '));
+      console.log(item.short, item.parents.length, item.children.length,
+        item.branch, item.tags.join(', '));
     }
   }).
   catch(error => {
