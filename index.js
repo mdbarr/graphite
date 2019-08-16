@@ -26,7 +26,12 @@ function Node (commit) {
   this.sha = id;
   this.short = id.substring(0, 8);
 
+  this.author = commit.author().toString();
+  this.body = commit.body();
+  this.committer = commit.committer().toString();
+  this.message = commit.message();
   this.summary = commit.summary();
+  this.timestamp = commit.timeMs();
 
   this.parents = commit.parents().map(oid => { return oid.toString(); });
   this.children = [ ];
@@ -149,6 +154,7 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
       console.log(item.short, item.parents.length, item.children.length,
         item.branch, item.tags.join(', '));
     }
+    console.log(initial);
   }).
   catch(error => {
     console.log(error);
