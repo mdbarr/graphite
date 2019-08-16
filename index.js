@@ -8,12 +8,11 @@ const path = require('path');
 const master = 'master';
 const LIMIT = 5000;
 
-let tree = null;
 const nodes = [ ];
 const index = new Map();
 const branches = new Map();
 const tags = new Map();
-let tail = null;
+let initial = null;
 
 branches.set(master, null); // sorting
 
@@ -50,16 +49,17 @@ Node.prototype.connect = function () {
     return false;
   }).
     filter(parent => { return parent; });
-
-  if (!tail && this.parents.length === 0) {
-    tail = this;
-    //this.branches.push('*TAIL');
-  }
 };
 
 Node.prototype.setBranch = function (name) {
   if (!this.branch) {
     this.branch = name;
+
+    if (name === master && !initial && this.parents.length === 0
+        && this.children.length) {
+      initial = this;
+      console.log('*initial', this.short);
+    }
 
     for (const parent of this.parents) {
       parent.setBranch(name);
@@ -102,24 +102,19 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
         }));
       }).
       then(() => {
-        return repo.getHeadCommit().
-          then((head) => {
-            tree = new Node(head);
+        const revwalk = nodegit.Revwalk.create(repo);
 
-            const revwalk = nodegit.Revwalk.create(repo);
+        revwalk.sorting(nodegit.Revwalk.TOPOLOGICAL, nodegit.Revwalk.REVERSE);
 
-            revwalk.sorting(nodegit.Revwalk.TOPOLOGICAL, nodegit.Revwalk.REVERSE);
+        revwalk.pushGlob('*');
+        revwalk.pushRef('origin/*');
 
-            revwalk.pushGlob('*');
-            revwalk.pushRef('origin/*');
-
-            return revwalk.commitWalk(LIMIT).
-              then((commits) => {
-                commits.forEach((commit) => {
-                  const node = new Node(commit);
-                  nodes.push(node);
-                });
-              });
+        return revwalk.commitWalk(LIMIT).
+          then((commits) => {
+            commits.forEach((commit) => {
+              const node = new Node(commit);
+              nodes.push(node);
+            });
           });
       });
   }).
@@ -128,8 +123,6 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
     for (const [ , node ] of index) {
       node.connect();
     }
-    console.log(tree);
-    return tree;
   }).
   then(() => {
     console.log('branching');
