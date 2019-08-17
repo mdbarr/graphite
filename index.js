@@ -150,7 +150,18 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
     }
   }).
   then(() => {
-    for (const [ , item ] of index) {
+    console.log('sorting');
+    nodes.sort((a, b) => {
+      if (a.timestamp < b.timestamp) {
+        return -1;
+      } else if (a.timestamp > b.timestamp) {
+        return 1;
+      }
+      return 0;
+    });
+  }).
+  then(() => {
+    for (const item of nodes) {
       console.log(item.short, item.parents.length, item.children.length,
         item.branch, item.tags.join(', '));
     }
