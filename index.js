@@ -161,12 +161,42 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
     });
   }).
   then(() => {
-    for (const item of nodes) {
-      console.log(item.short, item.parents.length, item.children.length,
-        item.branch, item.tags.join(', '));
+    console.log('placing');
+    const x = new Map();
+    let highest = -1;
+    let max = -1;
+
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+
+      node.y = nodes.length - i;
+
+      if (x.has(node.branch)) {
+        node.x = x.get(node.branch);
+      } else {
+        node.x = ++highest;
+        x.set(node.branch, node.x);
+      }
+
+      max = Math.max(max, highest);
+
+      if (node.children.length === 0) {
+        highest--;
+      } else if (node.children.length === 1 && x.has(node.children[0].branch)) {
+        highest = x.get(node.children[0].branch);
+      }
+
+      console.log(`${ ' '.repeat(node.x) }*${ ' '.repeat(12 - node.x) }` +
+                  `${ node.short } ${ node.branch }`);
     }
-    console.log(initial);
   }).
+  // then(() => {
+  //   for (const item of nodes) {
+  //     console.log(item.short, item.parents.length, item.children.length,
+  //       item.branch, item.tags.join(', '));
+  //   }
+  //   console.log(initial);
+  // }).
   catch(error => {
     console.log(error);
   });
