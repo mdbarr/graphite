@@ -76,6 +76,68 @@ Node.prototype.addTag = function(tag) {
   this.tags.push(tag);
 };
 
+//////////
+
+function SVG() {
+  this.elements = [];
+  this.groups = [];
+}
+
+SVG.prototype.line = function({
+  x1, y1, x2, y2
+}) {
+  const element = `<line x1="${ x1 }" y1="${ y1 }" x2="${ x2 } y2="${ y2 }"/>`;
+  this.elements.push(element);
+
+  return this;
+};
+
+SVG.prototype.circle = function({
+  cx, cy, r
+}) {
+  const element = `<circle cx="${ cx }" cy="${ cy }" r="${ r }/>`;
+  this.elements.push(element);
+  return this;
+};
+
+SVG.prototype.path = function({ d }) {
+  const element = `<path d="${ d }"/>`;
+  this.elements.push(element);
+
+  return this;
+};
+
+SVG.prototype.text = function() {
+  return this;
+};
+
+SVG.prototype.group = function({ name }) {
+  const group = new SVG();
+  this.groups.push(group);
+
+  if (name) {
+    group.name = name;
+    // this.[`$${ name }`] = group;
+  }
+
+  return group;
+};
+
+SVG.prototype.render = function() {
+  let image = '<svg viewBox="0 0 300 1000" xmlns="http://www.w3.org/2000/svg">';
+  for (const group of this.groups) {
+    image += `<g>${ group.elements.join('') }</g>`;
+  }
+  image += this.elements.join('');
+  image += '</svg>';
+
+  return image;
+};
+
+const svg = new SVG();
+
+//////////
+
 nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
   then((repo) => {
     return repo.getReferences().
@@ -186,9 +248,43 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
         highest = x.get(node.children[0].branch);
       }
 
-      console.log(`${ ' '.repeat(node.x) }*${ ' '.repeat(12 - node.x) }` +
-                  `${ node.short } ${ node.branch }`);
+      // console.log(`${ ' '.repeat(node.x) }*${ ' '.repeat(12 - node.x) }` +
+      //             `${ node.short } ${ node.branch }`);
     }
+  }).
+  then(() => {
+    console.log('drawing');
+    const dots = svg.group({ name: 'dots' });
+    const lines = svg.group({ name: 'lines' });
+
+    for (const node of nodes) {
+      const nx = node.x * 10;
+      const ny = node.y * 10;
+
+      dots.circle({
+        cx: node.x * 10,
+        cy: node.y * 10,
+        r: 3
+      });
+
+      for (const child of node.children) {
+        const cx = child.x * 10;
+        const cy = child.y * 10;
+
+        if (child.x === node.x) {
+          lines.line({
+            x1: nx,
+            y1: ny,
+            x2: cx,
+            y2: cy
+          });
+        } else {
+          lines.path({ d: `M${ nx },${ ny } C${ (cx - nx) / 1.5 + nx },${ ny } ` +
+                       `${ ( cx - nx ) / 2.5 + nx },${ cy } ${ cx },${ cy }` });
+        }
+      }
+    }
+    return svg.render();
   }).
   // then(() => {
   //   for (const item of nodes) {
