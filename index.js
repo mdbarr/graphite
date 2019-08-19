@@ -7,7 +7,7 @@ const path = require('path');
 const nodegit = require('nodegit');
 
 const master = 'master';
-const LIMIT = 5000;
+// const LIMIT = 5000;
 
 const nodes = [ ];
 const index = new Map();
@@ -93,6 +93,7 @@ function Node (commit) {
     replace(/[^\w\s]/g, '');
   this.summary = commit.summary();
   this.timestamp = commit.timeMs();
+  this.order = this.timestamp;
   // this.timestamp = Math.min(commit.
   //   author().
   //   when().
@@ -231,15 +232,18 @@ Node.prototype.assignBranch = function(name) {
     this.branch = name || generateBranchName();
 
     if (this.children.length) {
+      if (this.children[0].order < this.order) {
+        this.children[0].order = this.order;
+      }
       this.children[0].assignBranch(this.branch);
     }
   }
 };
 
 Node.sorter = (a, b) => {
-  if (a.timestamp < b.timestamp) {
+  if (a.order < b.order) {
     return -1;
-  } else if (a.timestamp > b.timestamp) {
+  } else if (a.order > b.order) {
     return 1;
   } else if (a.isAncestor(b)) {
     return 1;
@@ -401,12 +405,14 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
       then(() => {
         const revwalk = nodegit.Revwalk.create(repo);
 
-        revwalk.sorting(nodegit.Revwalk.TOPOLOGICAL, nodegit.Revwalk.REVERSE);
-
         revwalk.pushGlob('*');
         revwalk.pushRef('origin/*');
 
-        return revwalk.commitWalk(LIMIT).
+        //revwalk.simplifyFirstParent();
+        revwalk.sorting(nodegit.Revwalk.TOPOLOGICAL);
+
+        //return revwalk.commitWalk(LIMIT).
+        return revwalk.getCommitsUntil((commit) => { return Boolean(commit); }).
           then((commits) => {
             commits.forEach((commit) => {
               const node = new Node(commit);
@@ -443,6 +449,7 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
   }).
   then(() => {
     console.log('sorting');
+    nodes.reverse();
     nodes.sort(Node.sorter);
   }).
   then(() => {
@@ -454,6 +461,9 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
       nodes[i].assignBranch();
       nodes[i].children.sort(Node.sorter);
     }
+
+    // resort
+    nodes.sort(Node.sorter);
 
     // x coordinate
     for (const node of nodes) {
