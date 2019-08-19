@@ -3,7 +3,22 @@
 
 const fs = require('fs');
 const path = require('path');
-const nodegit = require('nodegit');
+const git = require('nodegit');
+
+//////////
+
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function generateBranchName(length = 8) {
+  const possibleAlphaNumerics = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890';
+  let generated = '';
+  for (let i = 0; i < length; i++) {
+    generated += possibleAlphaNumerics.charAt(rand(0, possibleAlphaNumerics.length - 1));
+  }
+  return generated;
+}
 
 //////////
 
@@ -155,7 +170,6 @@ SVG.prototype.group = function({ name }) {
 
   if (name) {
     group.name = name;
-    // this.[`$${ name }`] = group;
   }
 
   return group;
@@ -224,35 +238,194 @@ Slots.prototype.del = function(i, y, branch) {
 
 //////////
 
-function Graph({
-  master = 'master', renderLimit = Infinity
-} = {}) {
-  const nodes = [ ];
-  const index = new Map();
-  const branches = new Map();
-  const tags = new Map();
-  let initial = null;
+function Tree({ master }) {
+  this.master = master;
 
-  branches.set(master, null); // sorting
+  this.nodes = [ ];
+  this.index = new Map();
+  this.branches = new Map();
+  this.tags = new Map();
+  this.initial = null;
 
-  //////////
+  this.slots = new Slots();
 
-  function rand(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+  this.branches.set(this.master, null);
+}
+
+//////////
+
+function Node (commit, tree) {
+  this.tree = tree;
+
+  const id = commit.sha();
+
+  if (this.tree.index.has(id)) {
+    return this.tree.index.get(id);
   }
 
-  function generateBranchName(length = 8) {
-    const possibleAlphaNumerics = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890';
-    let generated = '';
-    for (let i = 0; i < length; i++) {
-      generated += possibleAlphaNumerics.charAt(rand(0, possibleAlphaNumerics.length - 1));
+  this.sha = id;
+  this.short = id.substring(0, 8);
+
+  this.author = commit.author().toString();
+  this.body = commit.body();
+  this.committer = commit.committer().toString();
+  this.message = commit.message();
+  this.brief = this.message.substring(0, 100).replace(/\n[^]+$/, '').
+    replace(/[^\w\s]/g, '');
+  this.summary = commit.summary();
+  this.timestamp = commit.timeMs();
+  this.order = this.timestamp;
+
+  this.parents = commit.parents().map(oid => { return oid.toString(); });
+  this.children = [ ];
+  this.branch = null;
+  this.tags = [ ];
+
+  this.tree.index.set(id, this);
+  this.tree.nodes.push(this);
+}
+
+Node.prototype.connect = function () {
+  this.parents = this.parents.map(parent => {
+    if (typeof parent === 'string' && this.tree.index.has(parent)) {
+      parent = this.tree.index.get(parent);
+
+      if (!parent.children.includes(this)) {
+        parent.children.push(this);
+      }
+      return parent;
     }
-    return generated;
+    return false;
+  }).
+    filter(parent => { return parent; });
+};
+
+Node.prototype.setBranch = function (name) {
+  if (!this.branch) {
+    this.branch = name;
+
+    if (name === this.tree.master && !this.tree.initial && this.parents.length === 0
+        && this.children.length) {
+      this.tree.initial = this;
+    }
+
+    if (this.parents.length) {
+      this.parents[0].setBranch(name);
+    }
+  }
+};
+
+Node.prototype.addTag = function(tag) {
+  this.tags.push(tag);
+};
+
+Node.prototype.descendant = function() {
+  for (const child of this.children) {
+    if (child.branch === this.branch) {
+      return child;
+    }
+  }
+  return false;
+};
+
+Node.prototype.isDescendant = function(node, seen = new WeakMap(), depth = 0) {
+  for (const child of this.children) {
+    if (child === node) {
+      return true;
+    }
   }
 
-  //////////
+  if (seen.has(this) || depth > 25) {
+    return false;
+  }
 
-  const colors = [
+  seen.set(this, this);
+
+  for (const child of this.children) {
+    if (child.isDescendant(node, seen, depth + 1)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+Node.prototype.isAncestor = function(node, seen = new WeakMap(), depth = 0) {
+  for (const parent of this.parents) {
+    if (parent === node) {
+      return true;
+    }
+  }
+
+  if (seen.has(this) || depth > 25) {
+    return false;
+  }
+
+  seen.set(this, this);
+
+  for (const parent of this.parents) {
+    if (parent.isAncestor(node, seen, depth + 1)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+Node.prototype.place = function() {
+  if (this.x === undefined) {
+    this.x = this.tree.slots.get(this.y, this.branch);
+  }
+
+  let descendant = this.descendant();
+  while (descendant) {
+    descendant.x = this.x;
+    descendant = descendant.descendant();
+  }
+
+  if (this.children.filter((item) => {
+    return item.branch === this.branch;
+  }).length === 0) {
+    this.tree.slots.del(this.x, this.y, this.branch);
+  }
+
+  for (const child of this.children) {
+    if (child.branch !== this.branch) {
+      child.x = this.tree.slots.get(child.y, child.branch);
+    }
+  }
+};
+
+Node.prototype.assignBranch = function(name) {
+  if (this.branch === null) {
+    this.branch = name || generateBranchName();
+
+    if (this.children.length) {
+      if (this.children[0].order < this.order) {
+        this.children[0].order = this.order;
+      }
+      this.children[0].assignBranch(this.branch);
+    }
+  }
+};
+
+Node.sorter = (a, b) => {
+  if (a.order < b.order) {
+    return -1;
+  } else if (a.order > b.order) {
+    return 1;
+  } else if (a.isAncestor(b)) {
+    return 1;
+  } else if (a.isDescendant(b)) {
+    return -1;
+  }
+  return 0;
+};
+
+//////////
+
+function Graph({
+  repository = process.cwd(), master = 'master', renderLimit = Infinity, colors
+} = {}) {
+  colors = colors || [
     '#D50000', '#C51162', '#AA00FF', '#6200EA', '#304FFE', '#2962FF',
     '#0091EA', '#00B8D4', '#00BFA5', '#00C853', '#64DD17', '#AEEA00',
     '#FFD600', '#FFAB00', '#FF6D00', '#DD2C00',
@@ -300,196 +473,17 @@ function Graph({
     return color;
   }
 
-  getColor('master');
+  getColor(master);
 
   //////////
 
-  const slots = new Slots();
-
-  //////////
-
-  function Node (commit) {
-    const id = commit.sha();
-
-    if (index.has(id)) {
-      return index.get(id);
-    }
-
-    this.sha = id;
-    this.short = id.substring(0, 8);
-
-    this.author = commit.author().toString();
-    this.body = commit.body();
-    this.committer = commit.committer().toString();
-    this.message = commit.message();
-    this.brief = this.message.substring(0, 100).replace(/\n[^]+$/, '').
-      replace(/[^\w\s]/g, '');
-    this.summary = commit.summary();
-    this.timestamp = commit.timeMs();
-    this.order = this.timestamp;
-    // this.timestamp = Math.min(commit.
-    //   author().
-    //   when().
-    //   time(),
-    // commit.
-    //   committer().
-    //   when().
-    //   time()) * 1000;
-
-    this.parents = commit.parents().map(oid => { return oid.toString(); });
-    this.children = [ ];
-    this.branch = null;
-    this.tags = [ ];
-
-    index.set(id, this);
-  }
-
-  Node.prototype.connect = function () {
-    this.parents = this.parents.map(parent => {
-      if (typeof parent === 'string' && index.has(parent)) {
-        parent = index.get(parent);
-
-        if (!parent.children.includes(this)) {
-          parent.children.push(this);
-        }
-        return parent;
-      }
-      return false;
-    }).
-      filter(parent => { return parent; });
-  };
-
-  Node.prototype.setBranch = function (name) {
-    if (!this.branch) {
-      this.branch = name;
-
-      if (name === master && !initial && this.parents.length === 0
-        && this.children.length) {
-        initial = this;
-      }
-
-      // for (const parent of this.parents) {
-      //   parent.setBranch(name);
-      // }
-      if (this.parents.length) {
-        this.parents[0].setBranch(name);
-      }
-    }
-  };
-
-  Node.prototype.addTag = function(tag) {
-    this.tags.push(tag);
-  };
-
-  Node.prototype.descendant = function() {
-    for (const child of this.children) {
-      if (child.branch === this.branch) {
-        return child;
-      }
-    }
-    return false;
-  };
-
-  Node.prototype.isDescendant = function(node, seen = new WeakMap(), depth = 0) {
-    for (const child of this.children) {
-      if (child === node) {
-        return true;
-      }
-    }
-
-    if (seen.has(this) || depth > 25) {
-      return false;
-    }
-
-    seen.set(this, this);
-
-    for (const child of this.children) {
-      if (child.isDescendant(node, seen, depth + 1)) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  Node.prototype.isAncestor = function(node, seen = new WeakMap(), depth = 0) {
-    for (const parent of this.parents) {
-      if (parent === node) {
-        return true;
-      }
-    }
-
-    if (seen.has(this) || depth > 25) {
-      return false;
-    }
-
-    seen.set(this, this);
-
-    for (const parent of this.parents) {
-      if (parent.isAncestor(node, seen, depth + 1)) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  Node.prototype.place = function() {
-    if (this.x === undefined) {
-      this.x = slots.get(this.y, this.branch);
-    }
-
-    let descendant = this.descendant();
-    while (descendant) {
-      descendant.x = this.x;
-      descendant = descendant.descendant();
-    }
-
-    if (this.children.filter((item) => {
-      return item.branch === this.branch;
-    }).length === 0) {
-      slots.del(this.x, this.y, this.branch);
-    }
-
-    for (const child of this.children) {
-      if (child.branch !== this.branch) {
-        child.x = slots.get(child.y, child.branch);
-      }
-    }
-  };
-
-  Node.prototype.assignBranch = function(name) {
-    if (this.branch === null) {
-      this.branch = name || generateBranchName();
-
-      if (this.children.length) {
-        if (this.children[0].order < this.order) {
-          this.children[0].order = this.order;
-        }
-        this.children[0].assignBranch(this.branch);
-      }
-    }
-  };
-
-  Node.sorter = (a, b) => {
-    if (a.order < b.order) {
-      return -1;
-    } else if (a.order > b.order) {
-      return 1;
-    } else if (a.isAncestor(b)) {
-      return 1;
-    } else if (a.isDescendant(b)) {
-      return -1;
-    }
-    return 0;
-  };
-
-  //////////
-
+  const tree = new Tree({ master });
   const svg = new SVG();
 
   //////////
 
   this.generate = () => {
-    return nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
+    return git.Repository.open(path.resolve(repository, '.git')).
       then((repo) => {
         return repo.getReferences().
           then((references) => {
@@ -497,19 +491,19 @@ function Graph({
               let name = reference.name();
               if (reference.isBranch() || name === 'refs/stash' ||
               name.startsWith('refs/remotes/origin/')) {
-                return nodegit.Reference.nameToId(repo, name).
+                return git.Reference.nameToId(repo, name).
                   then((oid) => {
                     name = name.replace(/^refs\/heads\//, '').
                       replace(/^refs\/remotes\//, '').
                       replace(/^refs\/stash$/, 'stash');
 
-                    branches.set(name, oid.toString());
+                    tree.branches.set(name, oid.toString());
                   });
               } else if (reference.isTag()) {
-                return nodegit.Reference.nameToId(repo, name).
+                return git.Reference.nameToId(repo, name).
                   then((oid) => {
                     name = name.replace(/^refs\/tags\//, '');
-                    tags.set(name, oid.toString());
+                    tree.tags.set(name, oid.toString());
                   });
               }
 
@@ -517,69 +511,68 @@ function Graph({
             }));
           }).
           then(() => {
-            const revwalk = nodegit.Revwalk.create(repo);
+            const revwalk = git.Revwalk.create(repo);
 
             revwalk.pushGlob('*');
             revwalk.pushRef('origin/*');
 
             //revwalk.simplifyFirstParent();
-            revwalk.sorting(nodegit.Revwalk.TOPOLOGICAL);
+            revwalk.sorting(git.Revwalk.TOPOLOGICAL);
 
             //return revwalk.commitWalk(LIMIT).
             return revwalk.getCommitsUntil((commit) => { return Boolean(commit); }).
               then((commits) => {
                 commits.forEach((commit) => {
-                  const node = new Node(commit);
-                  nodes.push(node);
+                  return new Node(commit, tree);
                 });
               });
           });
       }).
       then(() => {
-        for (const [ , node ] of index) {
+        for (const [ , node ] of tree.index) {
           node.connect();
         }
       }).
       then(() => {
-        for (const [ name, sha ] of branches) {
-          if (index.has(sha)) {
-            const node = index.get(sha);
+        for (const [ name, sha ] of tree.branches) {
+          if (tree.index.has(sha)) {
+            const node = tree.index.get(sha);
             node.setBranch(name);
           }
         }
       }).
       then(() => {
-        for (const [ name, sha ] of tags) {
-          if (index.has(sha)) {
-            const node = index.get(sha);
+        for (const [ name, sha ] of tree.tags) {
+          if (tree.index.has(sha)) {
+            const node = tree.index.get(sha);
             node.addTag(name);
           }
         }
       }).
       then(() => {
-        nodes.reverse();
-        nodes.sort(Node.sorter);
+        tree.nodes.reverse();
+        tree.nodes.sort(Node.sorter);
       }).
       then(() => {
       // y coordinate, branch names and children ordering
-        for (let i = 0; i < nodes.length; i++) {
-          nodes[i].y = nodes.length - i;
-          nodes[i].assignBranch();
-          nodes[i].children.sort(Node.sorter);
+        for (let i = 0; i < tree.nodes.length; i++) {
+          tree.nodes[i].y = tree.nodes.length - i;
+          tree.nodes[i].assignBranch();
+          tree.nodes[i].children.sort(Node.sorter);
         }
 
         // resort
-        nodes.sort(Node.sorter);
+        tree.nodes.sort(Node.sorter);
 
         // x coordinate
-        for (const node of nodes) {
+        for (const node of tree.nodes) {
           node.place();
         }
       }).
       then(() => {
         const lines = [];
-        for (let l = 0; l < slots.length; l++) {
-          lines.unshift(svg.group({ name: `lines-${ slots.length - l }` }));
+        for (let l = 0; l < tree.slots.length; l++) {
+          lines.unshift(svg.group({ name: `lines-${ tree.slots.length - l }` }));
         }
 
         const dots = svg.group({ name: 'dots' });
@@ -597,7 +590,7 @@ function Graph({
           return [ x, y ];
         };
 
-        for (const node of nodes) {
+        for (const node of tree.nodes) {
           if (node.y > renderLimit) {
             continue;
           }
@@ -609,9 +602,7 @@ function Graph({
             y: ny + 3,
             text: node.short.toUpperCase(),
             textAnchor: 'start',
-            // stroke: 'white',
-            // strokeWidth: 1,
-            fill: 'white', // getColor(node.branch),
+            fill: 'white',
             fontSize: '10px',
             fontWeight: '300',
             fontFamily: 'monospace'
@@ -650,18 +641,14 @@ function Graph({
               let d;
               let stroke;
               if (cx > nx) {
-                // d = `M${ nx },${ ny } L${ cx },${ ny } L${ cx },${ cy }`;
                 d = `M${ nx },${ ny } L${ cx - 3 },${ ny } L${ cx },${ ny - 3 } L${ cx },${ cy }`;
                 stroke = getColor(child.branch);
               } else {
-                // d = `M${ cx },${ cy } L${ nx },${ cy } L${ nx },${ ny }`;
                 d = `M${ cx },${ cy } L${ nx - 3 },${ cy } L${ nx },${ cy + 3 } L${ nx },${ ny }`;
                 stroke = getColor(node.branch);
               }
 
               lines[Math.max(node.x, child.x)].path({
-                // d: `M${ nx },${ ny } C${ (cx - nx) / 1.5 + nx },${ ny } ` +
-                //            `${ ( cx - nx ) / 2.5 + nx },${ cy } ${ cx },${ cy }`,
                 d,
                 stroke,
                 strokeWidth: 2,
