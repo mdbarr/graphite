@@ -45,33 +45,30 @@ Slots.prototype.get = function(y, branch) {
   }
 
   for (let i = 0; i < this.slots.length; i++) {
-    if (this.slots[i] !== 'taken' && this.slots[i] > y) {
+    if (typeof this.slots[i] === 'number' && this.slots[i] >= y) {
       console.log('slots*', this.slots, y, i);
-      this.slots[i] = 'taken';
-      if (branch) {
-        this.index.set(branch, i);
-      }
+      this.slots[i] = branch;
+      this.index.set(branch, i);
       return i;
     }
   }
 
-  this.slots.push('taken');
+  this.slots.push(branch);
   const i = this.slots.length - 1;
   console.log('slots+', this.slots, y);
-  if (branch) {
-    this.index.set(branch, i);
-  }
+  this.index.set(branch, i);
   return i;
 };
 
 Slots.prototype.del = function(i, y, branch) {
-  if (this.slots[i] === 'taken') {
+  if (typeof this.slots[i] === 'string') {
     this.slots[i] = y;
+
+    if (branch) {
+      this.index.delete(branch);
+    }
+    console.log('slots-', this.slots, i, y, branch);
   }
-  if (branch) {
-    this.index.delete(branch);
-  }
-  console.log('slots-', this.slots);
 };
 
 const slots = new Slots();
@@ -204,14 +201,8 @@ Node.prototype.isAncestor = function(node, seen = new WeakMap(), depth = 0) {
 
 Node.prototype.place = function() {
   if (this.x === undefined) {
+    console.log('placing', this.short, this.branch, this.children.length);
     this.x = slots.get(this.y, this.branch);
-  }
-
-  console.log('placing', this.short, this.branch, this.children.length);
-
-  if (this.children.length === 1 && this.children[0].branch !== this.branch ||
-      this.children.length === 0) {
-    slots.del(this.x, this.y, this.branch);
   }
 
   let descendant = this.descendant();
@@ -220,8 +211,16 @@ Node.prototype.place = function() {
     descendant = descendant.descendant();
   }
 
+  if (this.children.filter((item) => {
+    return item.branch === this.branch;
+  }).length === 0) {
+    console.log('removing', this.short, this.branch, this.children.length);
+    slots.del(this.x, this.y, this.branch);
+  }
+
   for (const child of this.children) {
     if (child.branch !== this.branch) {
+      console.log('placing', child.short, child.branch, child.children.length);
       child.x = slots.get(child.y, child.branch);
     }
   }
