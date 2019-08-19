@@ -17,6 +17,37 @@ let initial = null;
 
 branches.set(master, null); // sorting
 
+//////////
+
+function Slots() {
+  this.slots = [];
+}
+
+Slots.prototype.get = function(y) {
+  for (let i = 0; i < this.slots.length; i++) {
+    if (this.slots[i] !== 'taken' && this.slots[i] > y) {
+      console.log('slots*', this.slots, y, i);
+      this.slots[i] = 'taken';
+      return i;
+    }
+  }
+
+  this.slots.push('taken');
+  console.log('slots+', this.slots, y);
+  return this.slots.length - 1;
+};
+
+Slots.prototype.del = function(i, y) {
+  if (this.slots[i] === 'taken') {
+    this.slots[i] = y;
+  }
+  console.log('slots-', this.slots);
+};
+
+const slots = new Slots();
+
+//////////
+
 function Node (commit) {
   const id = commit.sha();
 
@@ -32,7 +63,15 @@ function Node (commit) {
   this.committer = commit.committer().toString();
   this.message = commit.message();
   this.summary = commit.summary();
-  this.timestamp = commit.timeMs();
+  this.time = commit.timeMs();
+  this.timestamp = Math.min(commit.
+    author().
+    when().
+    time(),
+  commit.
+    committer().
+    when().
+    time()) * 1000;
 
   this.parents = commit.parents().map(oid => { return oid.toString(); });
   this.children = [ ];
@@ -75,6 +114,40 @@ Node.prototype.setBranch = function (name) {
 
 Node.prototype.addTag = function(tag) {
   this.tags.push(tag);
+};
+
+Node.prototype.descendant = function() {
+  for (const child of this.children) {
+    if (child.branch === this.branch) {
+      return child;
+    }
+  }
+  return false;
+};
+
+Node.prototype.place = function() {
+  if (this.x === undefined) {
+    this.x = slots.get(this.y);
+  }
+
+  console.log('placing', this.short, this.branch, this.children.length);
+
+  if (this.children.length === 1 && this.children[0].branch !== this.branch ||
+      this.children.length === 0) {
+    slots.del(this.x, this.y);
+  }
+
+  let descendant = this.descendant();
+  while (descendant) {
+    descendant.x = this.x;
+    descendant = descendant.descendant();
+  }
+
+  for (const child of this.children) {
+    if (child.branch !== this.branch) {
+      child.x = slots.get(child.y);
+    }
+  }
 };
 
 //////////
@@ -270,32 +343,18 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
   }).
   then(() => {
     console.log('placing');
-    const x = new Map();
-    let highest = -1;
-    let max = -1;
 
+    // y coordinate
     for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
+      nodes[i].y = nodes.length - i;
+    }
 
-      node.y = nodes.length - i;
+    // x coordinate
+    for (const node of nodes) {
+      node.place();
 
-      if (x.has(node.branch)) {
-        node.x = x.get(node.branch);
-      } else {
-        node.x = ++highest;
-        x.set(node.branch, node.x);
-      }
-
-      max = Math.max(max, highest);
-
-      if (node.children.length === 0) {
-        highest--;
-      } else if (node.children.length === 1 && x.has(node.children[0].branch)) {
-        highest = x.get(node.children[0].branch);
-      }
-
-       console.log(`${ ' '.repeat(node.x) }*${ ' '.repeat(12 - node.x) }` +
-                   `${ node.short } ${ node.branch }`);
+      console.log(`${ ' '.repeat(node.x) }*${ ' '.repeat(12 - node.x) }` +
+                  `${ node.short } ${ node.branch }`);
     }
   }).
   then(() => {
@@ -304,8 +363,8 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
     const lines = svg.group({ name: 'lines' });
 
     for (const node of nodes) {
-      const nx = (node.x * 20) + 5;
-      const ny = (node.y * 20) + 5;
+      const nx = node.x * 20 + 5;
+      const ny = node.y * 20 + 5;
 
       dots.circle({
         cx: nx,
@@ -317,8 +376,8 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
       });
 
       for (const child of node.children) {
-        const cx = (child.x * 20) + 5;
-        const cy = (child.y * 20) + 5;
+        const cx = child.x * 20 + 5;
+        const cy = child.y * 20 + 5;
 
         if (child.x === node.x) {
           lines.line({
