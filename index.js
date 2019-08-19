@@ -34,6 +34,56 @@ function generateBranchName(length = 8) {
 
 //////////
 
+const COLORS = [
+  '#D50000', '#C51162', '#AA00FF', '#6200EA', '#304FFE', '#2962FF',
+  '#0091EA', '#00B8D4', '#00BFA5', '#00C853', '#64DD17', '#AEEA00',
+  '#FFD600', '#FFAB00', '#FF6D00', '#DD2C00',
+
+  '#FF1744', '#F50057', '#D500F9', '#651FFF', '#3D5AFE', '#2979FF',
+  '#00B0FF', '#00E5FF', '#1DE9B6', '#00E676', '#76FF03', '#C6FF00',
+  '#FFEA00', '#FFC400', '#FF9100', '#FF3D00',
+
+  '#FF5252', '#FF4081', '#E040FB', '#7C4DFF', '#536DFE', '#448AFF',
+  '#40C4FF', '#18FFFF', '#64FFDA', '#69F0AE', '#B2FF59', '#EEFF41',
+  '#FFFF00', '#FFD740', '#FFAB40', '#FF6E40'
+];
+
+function shuffle (array) {
+  let j;
+  let x;
+  let i;
+
+  for (i = array.length; i; i--) {
+    j = Math.floor(Math.random() * i);
+    x = array[i - 1];
+    array[i - 1] = array[j];
+    array[j] = x;
+  }
+  return array;
+}
+
+shuffle(COLORS);
+
+let colorIndex = COLORS.indexOf('#2979FF');
+const colorMap = new Map();
+
+function getColor(branch) {
+  if (colorMap.has(branch)) {
+    return colorMap.get(branch);
+  }
+  const color = COLORS[colorIndex];
+  colorMap.set(branch, color);
+
+  colorIndex++;
+  if (colorIndex >= COLORS.length) {
+    colorIndex = 0;
+  }
+
+  return color;
+}
+
+//////////
+
 function Slots() {
   this.slots = [];
   this.index = new Map();
@@ -498,10 +548,10 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
       dots.circle({
         cx: nx,
         cy: ny,
-        r: 4,
-        stroke: '#4E81C7',
-        strokeWidth: 4,
-        fill: '#4E81C7',
+        r: 5,
+        stroke: getColor(node.branch),
+        strokeWidth: 2,
+        fill: '#222', //getColor(node.branch),
         title: `[${ node.branch }] ${ node.short }: ${ node.brief }`
       });
 
@@ -518,15 +568,26 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
             y1: ny,
             x2: cx,
             y2: cy,
-            stroke: '#4E81C7',
+            stroke: getColor(child.branch),
             strokeWidth: 2,
-            fill: '#4E81C7'
+            fill: getColor(child.branch)
           });
         } else {
+          let d;
+          let stroke;
+          if (cx > nx) {
+            d = `M${ nx },${ ny } L${ cx },${ ny } L${ cx },${ cy }`;
+            stroke = getColor(child.branch);
+          } else {
+            d = `M${ cx },${ cy } L${ nx },${ cy } L${ nx },${ ny }`;
+            stroke = getColor(node.branch);
+          }
+
           lines.path({
-            d: `M${ nx },${ ny } C${ (cx - nx) / 1.5 + nx },${ ny } ` +
-                       `${ ( cx - nx ) / 2.5 + nx },${ cy } ${ cx },${ cy }`,
-            stroke: '#4E81C7',
+            // d: `M${ nx },${ ny } C${ (cx - nx) / 1.5 + nx },${ ny } ` +
+            //            `${ ( cx - nx ) / 2.5 + nx },${ cy } ${ cx },${ cy }`,
+            d,
+            stroke,
             strokeWidth: 2,
             fill: 'transparent'
           });
