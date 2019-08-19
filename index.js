@@ -367,6 +367,36 @@ SVG.prototype.circle = function({
   return this;
 };
 
+SVG.prototype.toRadians = (angle) => { return angle * (Math.PI / 180); };
+
+SVG.prototype.hexagon = function({
+  cx, cy, r, stroke, strokeWidth, fill, title
+}) {
+  const attributes = this.attributes({
+    stroke,
+    strokeWidth,
+    fill,
+    title
+  });
+
+  r += 1;
+
+  let points = [];
+  for (let i = 0; i < 360; i += 60) {
+    points.push({
+      x: cx + r * Math.cos(this.toRadians(i)),
+      y: cy + r * Math.sin(this.toRadians(i))
+    });
+  }
+
+  points = points.map((point) => { return `${ point.x },${ point.y }`; }).join(' ');
+
+  const element = `<polygon points="${ points }"${ attributes }/>`;
+  this.elements.push(element);
+
+  return this;
+};
+
 SVG.prototype.path = function({
   d, stroke, strokeWidth, fill
 }) {
@@ -551,13 +581,13 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
       width = Math.max(width, nx);
       height = Math.max(height, ny);
 
-      dots.circle({
+      dots.hexagon({
         cx: nx,
         cy: ny,
         r: 4,
         stroke: getColor(node.branch),
         strokeWidth: 2,
-        fill: '#222', //getColor(node.branch),
+        fill: '#333', //getColor(node.branch),
         title: `[${ node.branch }] ${ node.short }: ${ node.brief }`
       });
 
@@ -583,11 +613,11 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
           let stroke;
           if (cx > nx) {
             // d = `M${ nx },${ ny } L${ cx },${ ny } L${ cx },${ cy }`;
-            d = `M${ nx },${ ny } L${ cx - 3 },${ ny } L${ cx },${ ny - 3} L${ cx },${ cy }`;
+            d = `M${ nx },${ ny } L${ cx - 3 },${ ny } L${ cx },${ ny - 3 } L${ cx },${ cy }`;
             stroke = getColor(child.branch);
           } else {
             // d = `M${ cx },${ cy } L${ nx },${ cy } L${ nx },${ ny }`;
-            d = `M${ cx },${ cy } L${ nx - 3},${ cy } L${ nx },${ cy + 3 } L${ nx },${ ny }`;
+            d = `M${ cx },${ cy } L${ nx - 3 },${ cy } L${ nx },${ cy + 3 } L${ nx },${ ny }`;
             stroke = getColor(node.branch);
           }
 
