@@ -21,25 +21,40 @@ branches.set(master, null); // sorting
 
 function Slots() {
   this.slots = [];
+  this.index = new Map();
 }
 
-Slots.prototype.get = function(y) {
+Slots.prototype.get = function(y, branch) {
+  if (branch && this.index.has(branch)) {
+    return this.index.get(branch);
+  }
+
   for (let i = 0; i < this.slots.length; i++) {
     if (this.slots[i] !== 'taken' && this.slots[i] > y) {
       console.log('slots*', this.slots, y, i);
       this.slots[i] = 'taken';
+      if (branch) {
+        this.index.set(branch, i);
+      }
       return i;
     }
   }
 
   this.slots.push('taken');
+  const i = this.slots.length - 1;
   console.log('slots+', this.slots, y);
-  return this.slots.length - 1;
+  if (branch) {
+    this.index.set(branch, i);
+  }
+  return i;
 };
 
-Slots.prototype.del = function(i, y) {
+Slots.prototype.del = function(i, y, branch) {
   if (this.slots[i] === 'taken') {
     this.slots[i] = y;
+  }
+  if (branch) {
+    this.index.delete(branch);
   }
   console.log('slots-', this.slots);
 };
@@ -62,6 +77,8 @@ function Node (commit) {
   this.body = commit.body();
   this.committer = commit.committer().toString();
   this.message = commit.message();
+  this.brief = this.message.substring(0, 100).replace(/\n[^]+$/, '').
+    replace(/[^\w\s]/g, '');
   this.summary = commit.summary();
   this.timestamp = commit.timeMs();
   // this.timestamp = Math.min(commit.
@@ -106,8 +123,11 @@ Node.prototype.setBranch = function (name) {
       console.log('*initial', this.short);
     }
 
-    for (const parent of this.parents) {
-      parent.setBranch(name);
+    // for (const parent of this.parents) {
+    //   parent.setBranch(name);
+    // }
+    if (this.parents.length) {
+      this.parents[0].setBranch(name);
     }
   }
 };
@@ -169,14 +189,14 @@ Node.prototype.isAncestor = function(node, seen = new WeakMap(), depth = 0) {
 
 Node.prototype.place = function() {
   if (this.x === undefined) {
-    this.x = slots.get(this.y);
+    this.x = slots.get(this.y, this.branch);
   }
 
   console.log('placing', this.short, this.branch, this.children.length);
 
   if (this.children.length === 1 && this.children[0].branch !== this.branch ||
       this.children.length === 0) {
-    slots.del(this.x, this.y);
+    slots.del(this.x, this.y, this.branch);
   }
 
   let descendant = this.descendant();
@@ -187,7 +207,7 @@ Node.prototype.place = function() {
 
   for (const child of this.children) {
     if (child.branch !== this.branch) {
-      child.x = slots.get(child.y);
+      child.x = slots.get(child.y, child.branch);
     }
   }
 };
@@ -215,7 +235,7 @@ function SVG() {
 }
 
 SVG.prototype.attributes = function({
-  stroke, strokeWidth, fill
+  stroke, strokeWidth, fill, title
 }) {
   let attributes = '';
   if (stroke) {
@@ -230,6 +250,10 @@ SVG.prototype.attributes = function({
   }
   if (fill) {
     attributes += ` fill="${ fill }"`;
+  }
+
+  if (title) {
+    attributes += ` title="${ title }"`;
   }
 
   return attributes;
@@ -250,12 +274,13 @@ SVG.prototype.line = function({
 };
 
 SVG.prototype.circle = function({
-  cx, cy, r, stroke, strokeWidth, fill
+  cx, cy, r, stroke, strokeWidth, fill, title
 }) {
   const attributes = this.attributes({
     stroke,
     strokeWidth,
-    fill
+    fill,
+    title
   });
   const element = `<circle cx="${ cx }" cy="${ cy }" r="${ r }"${ attributes }/>`;
   this.elements.push(element);
@@ -440,7 +465,8 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
         r: 4,
         stroke: '#4E81C7',
         strokeWidth: 4,
-        fill: '#4E81C7'
+        fill: '#4E81C7',
+        title: `[${ node.branch }] ${ node.short }: ${ node.brief }`
       });
 
       for (const child of node.children) {
