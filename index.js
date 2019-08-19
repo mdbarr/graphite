@@ -63,15 +63,15 @@ function Node (commit) {
   this.committer = commit.committer().toString();
   this.message = commit.message();
   this.summary = commit.summary();
-  this.time = commit.timeMs();
-  this.timestamp = Math.min(commit.
-    author().
-    when().
-    time(),
-  commit.
-    committer().
-    when().
-    time()) * 1000;
+  this.timestamp = commit.timeMs();
+  // this.timestamp = Math.min(commit.
+  //   author().
+  //   when().
+  //   time(),
+  // commit.
+  //   committer().
+  //   when().
+  //   time()) * 1000;
 
   this.parents = commit.parents().map(oid => { return oid.toString(); });
   this.children = [ ];
@@ -120,6 +120,48 @@ Node.prototype.descendant = function() {
   for (const child of this.children) {
     if (child.branch === this.branch) {
       return child;
+    }
+  }
+  return false;
+};
+
+Node.prototype.isDescendant = function(node, seen = new WeakMap(), depth = 0) {
+  for (const child of this.children) {
+    if (child === node) {
+      return true;
+    }
+  }
+
+  if (seen.has(this) || depth > 25) {
+    return false;
+  }
+
+  seen.set(this, this);
+
+  for (const child of this.children) {
+    if (child.isDescendant(node, seen, depth + 1)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+Node.prototype.isAncestor = function(node, seen = new WeakMap(), depth = 0) {
+  for (const parent of this.parents) {
+    if (parent === node) {
+      return true;
+    }
+  }
+
+  if (seen.has(this) || depth > 25) {
+    return false;
+  }
+
+  seen.set(this, this);
+
+  for (const parent of this.parents) {
+    if (parent.isAncestor(node, seen, depth + 1)) {
+      return true;
     }
   }
   return false;
@@ -244,7 +286,8 @@ SVG.prototype.render = function({ root = true } = {}) {
     this.height += 10;
 
     image = `<svg width="${ this.width }" height="${ this.height }" ` +
-      `viewBox="0 0 ${ this.width } ${ this.height }" xmlns="http://www.w3.org/2000/svg">`;
+      `viewBox="0 0 ${ this.width } ${ this.height }" xmlns="http://www.w3.org/2000/svg" ` +
+      'style="background-color: #333;">';
   }
 
   for (const group of this.groups) {
@@ -343,7 +386,12 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
         return -1;
       } else if (a.timestamp > b.timestamp) {
         return 1;
+      } else if (a.isAncestor(b)) {
+        return 1;
+      } else if(a.isDescendant(b)) {
+        return -1;
       }
+      console.log(a.short, '===', b.short);
       return 0;
     });
   }).
@@ -359,14 +407,14 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
     for (const node of nodes) {
       node.place();
 
-      console.log(`${ ' '.repeat(node.x) }*${ ' '.repeat(12 - node.x) }` +
-                  `${ node.short } ${ node.branch }`);
+      // console.log(`${ ' '.repeat(node.x) }*${ ' '.repeat(100 - node.x) }` +
+      //             `${ node.short } ${ node.branch }`);
     }
   }).
   then(() => {
     console.log('drawing');
-    const dots = svg.group({ name: 'dots' });
     const lines = svg.group({ name: 'lines' });
+    const dots = svg.group({ name: 'dots' });
 
     let width = 0;
     let height = 0;
@@ -416,7 +464,7 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
                        `${ ( cx - nx ) / 2.5 + nx },${ cy } ${ cx },${ cy }`,
             stroke: '#4E81C7',
             strokeWidth: 2,
-            fill: '#4E81C7'
+            fill: 'transparent'
           });
         }
       }

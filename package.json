@@ -9,6 +9,7 @@
   "private": false,
   "dependencies": {
     "barrkeep": "^2.2.5",
+    "moment": "^2.24.0",
     "nodegit": "^0.25.1"
   },
   "devDependencies": {
