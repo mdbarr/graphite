@@ -375,7 +375,7 @@ SVG.prototype.path = function({
     strokeWidth,
     fill
   });
-  const element = `<path d="${ d }"${ attributes }/>`;
+  const element = `<path d="${ d }"${ attributes } stroke-linejoin="round"/>`;
   this.elements.push(element);
 
   return this;
@@ -539,7 +539,7 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
     let height = 0;
 
     const scale = (value) => {
-      value *= 30;
+      value *= 20;
       value += 10;
       return value;
     };
@@ -554,7 +554,7 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
       dots.circle({
         cx: nx,
         cy: ny,
-        r: 5,
+        r: 4,
         stroke: getColor(node.branch),
         strokeWidth: 2,
         fill: '#222', //getColor(node.branch),
@@ -582,10 +582,12 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
           let d;
           let stroke;
           if (cx > nx) {
-            d = `M${ nx },${ ny } L${ cx },${ ny } L${ cx },${ cy }`;
+            // d = `M${ nx },${ ny } L${ cx },${ ny } L${ cx },${ cy }`;
+            d = `M${ nx },${ ny } L${ cx - 3 },${ ny } L${ cx },${ ny - 3} L${ cx },${ cy }`;
             stroke = getColor(child.branch);
           } else {
-            d = `M${ cx },${ cy } L${ nx },${ cy } L${ nx },${ ny }`;
+            // d = `M${ cx },${ cy } L${ nx },${ cy } L${ nx },${ ny }`;
+            d = `M${ cx },${ cy } L${ nx - 3},${ cy } L${ nx },${ cy + 3 } L${ nx },${ ny }`;
             stroke = getColor(node.branch);
           }
 
