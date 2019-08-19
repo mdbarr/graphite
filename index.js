@@ -192,6 +192,19 @@ Node.prototype.place = function() {
   }
 };
 
+Node.sorter = (a, b) => {
+  if (a.timestamp < b.timestamp) {
+    return -1;
+  } else if (a.timestamp > b.timestamp) {
+    return 1;
+  } else if (a.isAncestor(b)) {
+    return 1;
+  } else if (a.isDescendant(b)) {
+    return -1;
+  }
+  return 0;
+};
+
 //////////
 
 function SVG() {
@@ -381,26 +394,15 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
   }).
   then(() => {
     console.log('sorting');
-    nodes.sort((a, b) => {
-      if (a.timestamp < b.timestamp) {
-        return -1;
-      } else if (a.timestamp > b.timestamp) {
-        return 1;
-      } else if (a.isAncestor(b)) {
-        return 1;
-      } else if(a.isDescendant(b)) {
-        return -1;
-      }
-      console.log(a.short, '===', b.short);
-      return 0;
-    });
+    nodes.sort(Node.sorter);
   }).
   then(() => {
     console.log('placing');
 
-    // y coordinate
+    // y coordinate, and children
     for (let i = 0; i < nodes.length; i++) {
       nodes[i].y = nodes.length - i;
+      nodes[i].children.sort(Node.sorter);
     }
 
     // x coordinate
