@@ -7,7 +7,9 @@ const path = require('path');
 const nodegit = require('nodegit');
 
 const master = 'master';
-// const LIMIT = 5000;
+//const LIMIT = 5000;
+
+const RENDER_LIMIT = Infinity;
 
 const nodes = [ ];
 const index = new Map();
@@ -81,6 +83,8 @@ function getColor(branch) {
 
   return color;
 }
+
+getColor('master');
 
 //////////
 
@@ -315,7 +319,8 @@ function SVG() {
 }
 
 SVG.prototype.attributes = function({
-  stroke, strokeWidth, fill, title
+  stroke, strokeWidth, fill, title, textAnchor,
+  fontSize, fontWeight, fontFamily
 }) {
   let attributes = '';
   if (stroke) {
@@ -334,6 +339,22 @@ SVG.prototype.attributes = function({
 
   if (title) {
     attributes += ` title="${ title }"`;
+  }
+
+  if (textAnchor) {
+    attributes += ` text-anchor="${ textAnchor }"`;
+  }
+
+  if (fontSize) {
+    attributes += ` font-size="${ fontSize }"`;
+  }
+
+  if (fontWeight) {
+    attributes += ` font-weight="${ fontWeight }"`;
+  }
+
+  if (fontFamily) {
+    attributes += ` font-family="${ fontFamily }"`;
   }
 
   return attributes;
@@ -411,7 +432,22 @@ SVG.prototype.path = function({
   return this;
 };
 
-SVG.prototype.text = function() {
+SVG.prototype.text = function({
+  x, y, text, textAnchor, stroke, strokeWidth, fill,
+  fontSize, fontWeight, fontFamily
+}) {
+  const attributes = this.attributes({
+    textAnchor,
+    stroke,
+    strokeWidth,
+    fill,
+    fontSize,
+    fontWeight,
+    fontFamily
+  });
+  const element = `<text x="${ x }" y="${ y }"${ attributes }>${ text }</text>`;
+  this.elements.push(element);
+
   return this;
 };
 
@@ -564,19 +600,39 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
     }
 
     const dots = svg.group({ name: 'dots' });
+    const labels = svg.group({ name: 'labels' });
 
     let width = 0;
     let height = 0;
 
-    const scale = (value) => {
-      value *= 20;
-      value += 10;
-      return value;
+    const scale = (x, y) => {
+      x *= 16;
+      y *= 16;
+
+      x += 68;
+
+      return [ x, y ];
     };
 
     for (const node of nodes) {
-      const nx = scale(node.x);
-      const ny = scale(node.y);
+      if (node.y > RENDER_LIMIT) {
+        continue;
+      }
+
+      const [ nx, ny ] = scale(node.x, node.y);
+
+      labels.text({
+        x: 6,
+        y: ny + 3,
+        text: node.short.toUpperCase(),
+        textAnchor: 'start',
+        // stroke: 'white',
+        // strokeWidth: 1,
+        fill: 'white', // getColor(node.branch),
+        fontSize: '10px',
+        fontWeight: '300',
+        fontFamily: 'monospace'
+      });
 
       width = Math.max(width, nx);
       height = Math.max(height, ny);
@@ -592,8 +648,7 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
       });
 
       for (const child of node.children) {
-        const cx = scale(child.x);
-        const cy = scale(child.y);
+        const [ cx, cy ] = scale(child.x, child.y);
 
         width = Math.max(width, cx);
         height = Math.max(height, cy);
