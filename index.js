@@ -19,6 +19,21 @@ branches.set(master, null); // sorting
 
 //////////
 
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function generateBranchName(length = 8) {
+  const possibleAlphaNumerics = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890';
+  let generated = '';
+  for (let i = 0; i < length; i++) {
+    generated += possibleAlphaNumerics.charAt(rand(0, possibleAlphaNumerics.length - 1));
+  }
+  return generated;
+}
+
+//////////
+
 function Slots() {
   this.slots = [];
   this.index = new Map();
@@ -208,6 +223,16 @@ Node.prototype.place = function() {
   for (const child of this.children) {
     if (child.branch !== this.branch) {
       child.x = slots.get(child.y, child.branch);
+    }
+  }
+};
+
+Node.prototype.assignBranch = function(name) {
+  if (this.branch === null) {
+    this.branch = name || generateBranchName();
+
+    if (this.children.length) {
+      this.children[0].assignBranch(this.branch);
     }
   }
 };
@@ -424,9 +449,10 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
   then(() => {
     console.log('placing');
 
-    // y coordinate, and children
+    // y coordinate, branch names and children ordering
     for (let i = 0; i < nodes.length; i++) {
       nodes[i].y = nodes.length - i;
+      nodes[i].assignBranch();
       nodes[i].children.sort(Node.sorter);
     }
 
@@ -437,6 +463,7 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
       // console.log(`${ ' '.repeat(node.x) }*${ ' '.repeat(100 - node.x) }` +
       //             `${ node.short } ${ node.branch }`);
     }
+    console.log(slots.index);
   }).
   then(() => {
     console.log('drawing');
