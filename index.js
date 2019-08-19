@@ -87,6 +87,7 @@ function getColor(branch) {
 function Slots() {
   this.slots = [];
   this.index = new Map();
+  this.length = 0;
 }
 
 Slots.prototype.get = function(y, branch) {
@@ -104,6 +105,7 @@ Slots.prototype.get = function(y, branch) {
   }
 
   this.slots.push(branch);
+  this.length = this.slots.length;
   const i = this.slots.length - 1;
   console.log('slots+', this.slots, y);
   this.index.set(branch, i);
@@ -526,7 +528,11 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
   }).
   then(() => {
     console.log('drawing');
-    const lines = svg.group({ name: 'lines' });
+    const lines = [];
+    for (let l = 0; l < slots.length; l++) {
+      lines.unshift(svg.group({ name: `lines-${ slots.length - l }` }));
+    }
+
     const dots = svg.group({ name: 'dots' });
 
     let width = 0;
@@ -563,7 +569,7 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
         height = Math.max(height, cy);
 
         if (child.x === node.x) {
-          lines.line({
+          lines[child.x].line({
             x1: nx,
             y1: ny,
             x2: cx,
@@ -583,7 +589,7 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
             stroke = getColor(node.branch);
           }
 
-          lines.path({
+          lines[Math.max(node.x, child.x)].path({
             // d: `M${ nx },${ ny } C${ (cx - nx) / 1.5 + nx },${ ny } ` +
             //            `${ ( cx - nx ) / 2.5 + nx },${ cy } ${ cx },${ cy }`,
             d,
