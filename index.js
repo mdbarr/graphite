@@ -153,6 +153,8 @@ Node.prototype.place = function() {
 //////////
 
 function SVG() {
+  this.width = 100;
+  this.height = 100;
   this.elements = [];
   this.groups = [];
 }
@@ -238,7 +240,11 @@ SVG.prototype.group = function({ name }) {
 SVG.prototype.render = function({ root = true } = {}) {
   let image = '';
   if (root) {
-    image = '<svg viewBox="0 0 300 5000" xmlns="http://www.w3.org/2000/svg">';
+    this.width += 10;
+    this.height += 10;
+
+    image = `<svg width="${ this.width }" height="${ this.height }" ` +
+      `viewBox="0 0 ${ this.width } ${ this.height }" xmlns="http://www.w3.org/2000/svg">`;
   }
 
   for (const group of this.groups) {
@@ -362,9 +368,21 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
     const dots = svg.group({ name: 'dots' });
     const lines = svg.group({ name: 'lines' });
 
+    let width = 0;
+    let height = 0;
+
+    const scale = (value) => {
+      value *= 30;
+      value += 10;
+      return value;
+    };
+
     for (const node of nodes) {
-      const nx = node.x * 20 + 5;
-      const ny = node.y * 20 + 5;
+      const nx = scale(node.x);
+      const ny = scale(node.y);
+
+      width = Math.max(width, nx);
+      height = Math.max(height, ny);
 
       dots.circle({
         cx: nx,
@@ -376,8 +394,11 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
       });
 
       for (const child of node.children) {
-        const cx = child.x * 20 + 5;
-        const cy = child.y * 20 + 5;
+        const cx = scale(child.x);
+        const cy = scale(child.y);
+
+        width = Math.max(width, cx);
+        height = Math.max(height, cy);
 
         if (child.x === node.x) {
           lines.line({
@@ -400,6 +421,10 @@ nodegit.Repository.open(path.resolve(process.cwd(), '.git')).
         }
       }
     }
+
+    svg.width = width;
+    svg.height = height;
+
     return svg.render();
   }).
   then((image) => {
