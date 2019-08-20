@@ -77,7 +77,7 @@ SVG.prototype.line = function({
     fill
   });
   const element = `<line x1="${ x1 }" y1="${ y1 }" x2="${ x2 }" y2="${ y2 }"${ attributes }/>`;
-  this.elements.push(element);
+  this.elements.unshift(element);
 
   return this;
 };
@@ -92,7 +92,7 @@ SVG.prototype.circle = function({
     title
   });
   const element = `<circle cx="${ cx }" cy="${ cy }" r="${ r }"${ attributes }/>`;
-  this.elements.push(element);
+  this.elements.unshift(element);
   return this;
 };
 
@@ -121,7 +121,7 @@ SVG.prototype.hexagon = function({
   points = points.map((point) => { return `${ point.x },${ point.y }`; }).join(' ');
 
   const element = `<polygon points="${ points }"${ attributes }/>`;
-  this.elements.push(element);
+  this.elements.unshift(element);
 
   return this;
 };
@@ -135,7 +135,7 @@ SVG.prototype.path = function({
     fill
   });
   const element = `<path d="${ d }"${ attributes }/>`;
-  this.elements.push(element);
+  this.elements.unshift(element);
 
   return this;
 };
@@ -154,7 +154,7 @@ SVG.prototype.text = function({
     fontFamily
   });
   const element = `<text x="${ x }" y="${ y }"${ attributes }>${ text }</text>`;
-  this.elements.push(element);
+  this.elements.unshift(element);
 
   return this;
 };
