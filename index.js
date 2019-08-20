@@ -49,46 +49,23 @@ function SVG({
   this.groups = [];
 }
 
-SVG.prototype.attributes = function({
-  stroke, strokeWidth, fill, title, textAnchor,
-  fontSize, fontWeight, fontFamily
-}) {
-  let attributes = '';
-  if (stroke) {
-    attributes += ` stroke="${ stroke }"`;
-  }
-  if (strokeWidth) {
-    if (typeof strokeWidth === 'number') {
-      attributes += ` stroke-width="${ strokeWidth }px"`;
-    } else {
-      attributes += ` stroke-width="${ strokeWidth }"`;
+SVG.prototype.attributes = function(options) {
+  const attributes = [ ];
+  for (const key in options) {
+    const attr = key.replace(/([A-Z])/g, (match, letter) => {
+      return `-${ letter.toLowerCase() }`;
+    });
+
+    let value = options[key];
+    if ((attr.includes('width') || attr.includes('height')) &&
+        typeof value === 'number') {
+      value += 'px';
     }
-  }
-  if (fill) {
-    attributes += ` fill="${ fill }"`;
+
+    attributes.push(`${ attr }="${ value }"`);
   }
 
-  if (title) {
-    attributes += ` title="${ title }"`;
-  }
-
-  if (textAnchor) {
-    attributes += ` text-anchor="${ textAnchor }"`;
-  }
-
-  if (fontSize) {
-    attributes += ` font-size="${ fontSize }"`;
-  }
-
-  if (fontWeight) {
-    attributes += ` font-weight="${ fontWeight }"`;
-  }
-
-  if (fontFamily) {
-    attributes += ` font-family="${ fontFamily }"`;
-  }
-
-  return attributes;
+  return ` ${ attributes.join(' ') }`;
 };
 
 SVG.prototype.line = function({
@@ -122,7 +99,7 @@ SVG.prototype.circle = function({
 SVG.prototype.toRadians = (angle) => { return angle * (Math.PI / 180); };
 
 SVG.prototype.hexagon = function({
-  cx, cy, r, stroke, strokeWidth, fill, title
+  cx, cy, r, rotation = 30, stroke, strokeWidth, fill, title
 }) {
   const attributes = this.attributes({
     stroke,
@@ -136,8 +113,8 @@ SVG.prototype.hexagon = function({
   let points = [];
   for (let i = 0; i < 360; i += 60) {
     points.push({
-      x: precisionRound(cx + r * Math.cos(this.toRadians(i))),
-      y: precisionRound(cy + r * Math.sin(this.toRadians(i)))
+      x: precisionRound(cx + r * Math.cos(this.toRadians(i + rotation))),
+      y: precisionRound(cy + r * Math.sin(this.toRadians(i + rotation)))
     });
   }
 
@@ -157,7 +134,7 @@ SVG.prototype.path = function({
     strokeWidth,
     fill
   });
-  const element = `<path d="${ d }"${ attributes } stroke-linejoin="round"/>`;
+  const element = `<path d="${ d }"${ attributes }/>`;
   this.elements.push(element);
 
   return this;
