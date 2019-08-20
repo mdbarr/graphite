@@ -57,6 +57,10 @@ SVG.prototype.attributes = function(options) {
     });
 
     let value = options[key];
+    if (!value) {
+      continue;
+    }
+
     if ((attr.includes('width') || attr.includes('height')) &&
         typeof value === 'number') {
       value += 'px';
@@ -398,8 +402,11 @@ Node.sorter = (a, b) => {
 
 function Griff({
   repository = process.cwd(), master = 'master', limit = Infinity, colors,
-  save = false, filename = 'graph.svg', text = false
+  save = false, filename = 'graph.svg', text = false, shape = 'hexagon',
+  titles = false
 } = {}) {
+  shape = shape !== 'hexagon' ? 'circle' : 'hexagon';
+
   colors = colors || [
     '#D50000', '#C51162', '#AA00FF', '#6200EA', '#304FFE', '#2962FF',
     '#0091EA', '#00B8D4', '#00BFA5', '#00C853', '#64DD17', '#AEEA00',
@@ -569,14 +576,14 @@ function Griff({
           width = Math.max(width, nx);
           height = Math.max(height, ny);
 
-          dots.hexagon({
+          dots[shape]({
             cx: nx,
             cy: ny,
             r: 4,
             stroke: getColor(node.branch),
             strokeWidth: 2,
             fill: '#333', //getColor(node.branch),
-            title: `[${ node.branch }] ${ node.short }: ${ node.brief }`
+            title: titles ? `[${ node.branch }] ${ node.short }: ${ node.brief }` : false
           });
 
           for (const child of node.children) {
