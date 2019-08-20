@@ -4,6 +4,24 @@ const fs = require('fs');
 const path = require('path');
 const git = require('nodegit');
 
+const COLORS = [
+  '#D50000', '#C51162', '#AA00FF', '#6200EA', '#304FFE', '#2962FF',
+  '#0091EA', '#00B8D4', '#00BFA5', '#00C853', '#64DD17', '#AEEA00',
+  '#FFD600', '#FFAB00', '#FF6D00', '#DD2C00',
+
+  '#FF1744', '#F50057', '#D500F9', '#651FFF', '#3D5AFE', '#2979FF',
+  '#00B0FF', '#00E5FF', '#1DE9B6', '#00E676', '#76FF03', '#C6FF00',
+  '#FFEA00', '#FFC400', '#FF9100', '#FF3D00',
+
+  '#FF5252', '#FF4081', '#E040FB', '#7C4DFF', '#536DFE', '#448AFF',
+  '#40C4FF', '#18FFFF', '#64FFDA', '#69F0AE', '#B2FF59', '#EEFF41',
+  '#FFFF00', '#FFD740', '#FFAB40', '#FF6E40',
+
+  '#FF8A80', '#FF80AB', '#EA80FC', '#B388FF', '#8C9EFF', '#82B1FF',
+  '#80D8FF', '#84FFFF', '#A7FFEB', '#B9F6CA', '#CCFF90', '#F4FF81',
+  '#FFFF8D', '#FFE57F', '#FFD180', '#FF9E80'
+];
+
 //////////
 
 function rand(min, max) {
@@ -41,12 +59,13 @@ function generateBranchName(length = 8) {
 //////////
 
 function SVG({
-  width = 100, height = 100
+  width = 100, height = 100, background = '#333'
 } = {}) {
   this.width = width;
   this.height = height;
   this.elements = [];
   this.groups = [];
+  this.background = background;
 }
 
 SVG.prototype.attributes = function(options) {
@@ -158,7 +177,7 @@ SVG.prototype.render = function({ root = true } = {}) {
 
     image = `<svg width="${ this.width }" height="${ this.height }" ` +
       `viewBox="0 0 ${ this.width } ${ this.height }" xmlns="http://www.w3.org/2000/svg" ` +
-      'style="background-color: #333;">';
+      `style="background-color: ${ this.background };">`;
   }
 
   for (const group of this.groups) {
@@ -406,27 +425,13 @@ Node.sorter = (a, b) => {
 function Griff({
   repository = process.cwd(), master = 'master', limit = Infinity, colors,
   save = false, filename = 'graph.svg', text = false, shape = 'hexagon',
-  titles = false
+  titles = false, background = '#333'
 } = {}) {
   shape = shape !== 'hexagon' ? 'circle' : 'hexagon';
 
-  colors = colors || [
-    '#D50000', '#C51162', '#AA00FF', '#6200EA', '#304FFE', '#2962FF',
-    '#0091EA', '#00B8D4', '#00BFA5', '#00C853', '#64DD17', '#AEEA00',
-    '#FFD600', '#FFAB00', '#FF6D00', '#DD2C00',
+  colors = colors || shuffle(Array.from(COLORS));
 
-    '#FF1744', '#F50057', '#D500F9', '#651FFF', '#3D5AFE', '#2979FF',
-    '#00B0FF', '#00E5FF', '#1DE9B6', '#00E676', '#76FF03', '#C6FF00',
-    '#FFEA00', '#FFC400', '#FF9100', '#FF3D00',
-
-    '#FF5252', '#FF4081', '#E040FB', '#7C4DFF', '#536DFE', '#448AFF',
-    '#40C4FF', '#18FFFF', '#64FFDA', '#69F0AE', '#B2FF59', '#EEFF41',
-    '#FFFF00', '#FFD740', '#FFAB40', '#FF6E40'
-  ];
-
-  shuffle(colors);
-
-  let colorIndex = colors.indexOf('#2979FF');
+  let colorIndex = colors.indexOf('#2979FF') || 0;
   const colorMap = new Map();
 
   function getColor(branch) {
@@ -450,7 +455,7 @@ function Griff({
 
   this.generate = () => {
     const tree = new Tree({ master });
-    const svg = new SVG();
+    const svg = new SVG({ background });
 
     return git.Repository.open(path.resolve(repository, '.git')).
       then((repo) => {
@@ -548,7 +553,7 @@ function Griff({
         const dots = svg.group({
           name: 'dots',
           strokeWidth: 2,
-          fill: '#333' //getColor(node.branch),
+          fill: background
         });
 
         let labels;
