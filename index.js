@@ -281,6 +281,8 @@ function Node (commit, tree) {
   this.branch = null;
   this.tags = [ ];
 
+  this.stash = false;
+
   this.tree.index.set(id, this);
   this.tree.nodes.push(this);
 }
@@ -309,8 +311,21 @@ Node.prototype.setBranch = function (name) {
       this.tree.initial = this;
     }
 
+    if (name === 'stash') {
+      this.setStash();
+    }
+
     if (this.parents.length) {
       this.parents[0].setBranch(name);
+    }
+  }
+};
+
+Node.prototype.setStash = function() {
+  this.stash = true;
+  for (const parent of this.parents) {
+    if (!parent.branch) {
+      parent.stash = true;
     }
   }
 };
@@ -634,7 +649,8 @@ function Griff({
               lines[Math.max(node.x, child.x)].path({
                 d,
                 stroke,
-                fill: 'none'
+                fill: 'none',
+                strokeDasharray: child.stash ? 2 : false
               });
             }
           }
