@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 'use strict';
 
 const fs = require('fs');
@@ -422,8 +421,9 @@ Node.sorter = (a, b) => {
 
 //////////
 
-function Graph({
-  repository = process.cwd(), master = 'master', renderLimit = Infinity, colors
+function Griff({
+  repository = process.cwd(), master = 'master', limit = Infinity, colors,
+  save = false, filename = 'graph.svg', text = false
 } = {}) {
   colors = colors || [
     '#D50000', '#C51162', '#AA00FF', '#6200EA', '#304FFE', '#2962FF',
@@ -477,12 +477,10 @@ function Graph({
 
   //////////
 
-  const tree = new Tree({ master });
-  const svg = new SVG();
-
-  //////////
-
   this.generate = () => {
+    const tree = new Tree({ master });
+    const svg = new SVG();
+
     return git.Repository.open(path.resolve(repository, '.git')).
       then((repo) => {
         return repo.getReferences().
@@ -490,7 +488,7 @@ function Graph({
             return Promise.all(references.map((reference) => {
               let name = reference.name();
               if (reference.isBranch() || name === 'refs/stash' ||
-              name.startsWith('refs/remotes/origin/')) {
+                  name.startsWith('refs/remotes/origin/')) {
                 return git.Reference.nameToId(repo, name).
                   then((oid) => {
                     name = name.replace(/^refs\/heads\//, '').
@@ -516,10 +514,8 @@ function Graph({
             revwalk.pushGlob('*');
             revwalk.pushRef('origin/*');
 
-            //revwalk.simplifyFirstParent();
             revwalk.sorting(git.Revwalk.TOPOLOGICAL);
 
-            //return revwalk.commitWalk(LIMIT).
             return revwalk.getCommitsUntil((commit) => { return Boolean(commit); }).
               then((commits) => {
                 commits.forEach((commit) => {
@@ -585,28 +581,29 @@ function Graph({
           x *= 16;
           y *= 16;
 
-          x += 68;
-
+          x += text ? 68 : 10;
           return [ x, y ];
         };
 
         for (const node of tree.nodes) {
-          if (node.y > renderLimit) {
+          if (node.y > limit) {
             continue;
           }
 
           const [ nx, ny ] = scale(node.x, node.y);
 
-          labels.text({
-            x: 6,
-            y: ny + 3,
-            text: node.short.toUpperCase(),
-            textAnchor: 'start',
-            fill: 'white',
-            fontSize: '10px',
-            fontWeight: '300',
-            fontFamily: 'monospace'
-          });
+          if (text) {
+            labels.text({
+              x: 6,
+              y: ny + 3,
+              text: node.short.toUpperCase(),
+              textAnchor: 'start',
+              fill: 'white',
+              fontSize: '10px',
+              fontWeight: '300',
+              fontFamily: 'monospace'
+            });
+          }
 
           width = Math.max(width, nx);
           height = Math.max(height, ny);
@@ -652,7 +649,7 @@ function Graph({
                 d,
                 stroke,
                 strokeWidth: 2,
-                fill: 'transparent'
+                fill: 'none'
               });
             }
           }
@@ -664,13 +661,19 @@ function Graph({
         return svg.render();
       }).
       then((image) => {
-        fs.writeFileSync('graph.svg', image);
+        if (save) {
+          return new Promise((resolve, reject) => {
+            fs.writeFile(filename, image, (error) => {
+              if (error) {
+                return reject(error);
+              }
+              return resolve(image);
+            });
+          });
+        }
         return image;
       });
   };
 }
 
-module.exports = Graph;
-
-const graph = new Graph();
-graph.generate();
+module.exports = Griff;

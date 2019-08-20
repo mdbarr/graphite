@@ -1,5 +1,5 @@
 {
-  "name": "young-griff",
+  "name": "@mdbarr/griff",
   "version": "0.1.0",
   "description": "Git Graph Visualization",
   "main": "index.js",
@@ -7,15 +7,16 @@
   "author": "Mark Barr <mark@hyperingenuity.com>",
   "license": "MIT",
   "private": false,
+  "bin": {
+    "griff": "./cli.js"
+  },
   "dependencies": {
-    "barrkeep": "^2.2.5",
-    "moment": "^2.24.0",
     "nodegit": "^0.25.1"
   },
   "devDependencies": {
-    "eslint": "^6.1.0"
+    "eslint": "^6.2.0"
   },
   "scripts": {
-    "lint": "eslint index.js"
+    "lint": "eslint *.js"
   }
 }
