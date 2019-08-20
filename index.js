@@ -69,13 +69,9 @@ SVG.prototype.attributes = function(options) {
 };
 
 SVG.prototype.line = function({
-  x1, y1, x2, y2, stroke, strokeWidth, fill
+  x1, y1, x2, y2, ...options
 }) {
-  const attributes = this.attributes({
-    stroke,
-    strokeWidth,
-    fill
-  });
+  const attributes = this.attributes(options);
   const element = `<line x1="${ x1 }" y1="${ y1 }" x2="${ x2 }" y2="${ y2 }"${ attributes }/>`;
   this.elements.unshift(element);
 
@@ -83,14 +79,9 @@ SVG.prototype.line = function({
 };
 
 SVG.prototype.circle = function({
-  cx, cy, r, stroke, strokeWidth, fill, title
+  cx, cy, r, ...options
 }) {
-  const attributes = this.attributes({
-    stroke,
-    strokeWidth,
-    fill,
-    title
-  });
+  const attributes = this.attributes(options);
   const element = `<circle cx="${ cx }" cy="${ cy }" r="${ r }"${ attributes }/>`;
   this.elements.unshift(element);
   return this;
@@ -99,14 +90,9 @@ SVG.prototype.circle = function({
 SVG.prototype.toRadians = (angle) => { return angle * (Math.PI / 180); };
 
 SVG.prototype.hexagon = function({
-  cx, cy, r, rotation = 30, stroke, strokeWidth, fill, title
+  cx, cy, r, rotation = 30, ...options
 }) {
-  const attributes = this.attributes({
-    stroke,
-    strokeWidth,
-    fill,
-    title
-  });
+  const attributes = this.attributes(options);
 
   r += 1;
 
@@ -127,13 +113,9 @@ SVG.prototype.hexagon = function({
 };
 
 SVG.prototype.path = function({
-  d, stroke, strokeWidth, fill
+  d, ...options
 }) {
-  const attributes = this.attributes({
-    stroke,
-    strokeWidth,
-    fill
-  });
+  const attributes = this.attributes(options);
   const element = `<path d="${ d }"${ attributes }/>`;
   this.elements.unshift(element);
 
@@ -141,18 +123,9 @@ SVG.prototype.path = function({
 };
 
 SVG.prototype.text = function({
-  x, y, text, textAnchor, stroke, strokeWidth, fill,
-  fontSize, fontWeight, fontFamily
+  x, y, text, ...options
 }) {
-  const attributes = this.attributes({
-    textAnchor,
-    stroke,
-    strokeWidth,
-    fill,
-    fontSize,
-    fontWeight,
-    fontFamily
-  });
+  const attributes = this.attributes(options);
   const element = `<text x="${ x }" y="${ y }"${ attributes }>${ text }</text>`;
   this.elements.unshift(element);
 
