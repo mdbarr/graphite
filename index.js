@@ -10,6 +10,20 @@ function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function shuffle(array) {
+  let j;
+  let x;
+  let i;
+
+  for (i = array.length; i; i--) {
+    j = Math.floor(Math.random() * i);
+    x = array[i - 1];
+    array[i - 1] = array[j];
+    array[j] = x;
+  }
+  return array;
+}
+
 function precisionRound(number, precision = 2) {
   const factor = Math.pow(10, precision);
   return Math.round(number * factor) / factor;
@@ -273,15 +287,21 @@ function Node (commit, tree) {
   this.author = commit.author().toString();
   this.body = commit.body();
   this.committer = commit.committer().toString();
+
   this.message = commit.message();
-  this.brief = this.message.substring(0, 100).replace(/\n[^]+$/, '').
-    replace(/[^\w:\-_\s]/g, '').trim();
+  this.brief = this.message.substring(0, 100).
+    replace(/\n[^]+$/, '').
+    replace(/[^\w:\-_\s]/g, '').
+    trim();
+
   this.summary = commit.summary();
+
   this.timestamp = commit.timeMs();
   this.order = this.timestamp;
 
   this.parents = commit.parents().map(oid => { return oid.toString(); });
   this.children = [ ];
+
   this.branch = null;
   this.tags = [ ];
 
@@ -444,20 +464,6 @@ function Griff({
     '#FFFF00', '#FFD740', '#FFAB40', '#FF6E40'
   ];
 
-  function shuffle (array) {
-    let j;
-    let x;
-    let i;
-
-    for (i = array.length; i; i--) {
-      j = Math.floor(Math.random() * i);
-      x = array[i - 1];
-      array[i - 1] = array[j];
-      array[j] = x;
-    }
-    return array;
-  }
-
   shuffle(colors);
 
   let colorIndex = colors.indexOf('#2979FF');
@@ -555,7 +561,7 @@ function Griff({
         tree.nodes.sort(Node.sorter);
       }).
       then(() => {
-      // y coordinate, branch names and children ordering
+        // y coordinate, branch names and children ordering
         for (let i = 0; i < tree.nodes.length; i++) {
           tree.nodes[i].y = tree.nodes.length - i;
           tree.nodes[i].assignBranch();
