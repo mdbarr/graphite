@@ -3,4 +3,8 @@
 
 const Griff = require('./index');
 const griff = new Griff({ save: true });
-griff.generate();
+
+griff.generate().
+  catch((error) => {
+    console.log(error);
+  });

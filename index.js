@@ -136,13 +136,16 @@ SVG.prototype.text = function({
   return this;
 };
 
-SVG.prototype.group = function({ name }) {
+SVG.prototype.group = function({
+  name, ...options
+}) {
   const group = new SVG();
   this.groups.push(group);
 
   if (name) {
     group.name = name;
   }
+  group.style = this.attributes(options);
 
   return group;
 };
@@ -159,7 +162,7 @@ SVG.prototype.render = function({ root = true } = {}) {
   }
 
   for (const group of this.groups) {
-    image += `<g>${ group.render({ root: false }) }</g>`;
+    image += `<g${ group.style }>${ group.render({ root: false }) }</g>`;
   }
   image += this.elements.join('');
 
@@ -536,11 +539,29 @@ function Griff({
       then(() => {
         const lines = [];
         for (let l = 0; l < tree.slots.length; l++) {
-          lines.unshift(svg.group({ name: `lines-${ tree.slots.length - l }` }));
+          lines.unshift(svg.group({
+            name: `lines-${ tree.slots.length - l }`,
+            strokeWidth: 2
+          }));
         }
 
-        const dots = svg.group({ name: 'dots' });
-        const labels = svg.group({ name: 'labels' });
+        const dots = svg.group({
+          name: 'dots',
+          strokeWidth: 2,
+          fill: '#333' //getColor(node.branch),
+        });
+
+        let labels;
+        if (text) {
+          labels = svg.group({
+            name: 'labels',
+            textAnchor: 'start',
+            fill: 'white',
+            fontSize: '10px',
+            fontWeight: '300',
+            fontFamily: 'monospace'
+          });
+        }
 
         let width = 0;
         let height = 0;
@@ -564,12 +585,7 @@ function Griff({
             labels.text({
               x: 6,
               y: ny + 3,
-              text: node.short.toUpperCase(),
-              textAnchor: 'start',
-              fill: 'white',
-              fontSize: '10px',
-              fontWeight: '300',
-              fontFamily: 'monospace'
+              text: node.short.toUpperCase()
             });
           }
 
@@ -581,8 +597,6 @@ function Griff({
             cy: ny,
             r: 4,
             stroke: getColor(node.branch),
-            strokeWidth: 2,
-            fill: '#333', //getColor(node.branch),
             title: titles ? `[${ node.branch }] ${ node.short }: ${ node.brief }` : false
           });
 
@@ -599,7 +613,6 @@ function Griff({
                 x2: cx,
                 y2: cy,
                 stroke: getColor(child.branch),
-                strokeWidth: 2,
                 fill: getColor(child.branch)
               });
             } else {
@@ -616,7 +629,6 @@ function Griff({
               lines[Math.max(node.x, child.x)].path({
                 d,
                 stroke,
-                strokeWidth: 2,
                 fill: 'none'
               });
             }
