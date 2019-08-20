@@ -10,6 +10,11 @@ function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function precisionRound(number, precision = 2) {
+  const factor = Math.pow(10, precision);
+  return Math.round(number * factor) / factor;
+}
+
 function generateBranchName(length = 8) {
   const possibleAlphaNumerics = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890';
   let generated = '';
@@ -117,8 +122,8 @@ SVG.prototype.hexagon = function({
   let points = [];
   for (let i = 0; i < 360; i += 60) {
     points.push({
-      x: cx + r * Math.cos(this.toRadians(i)),
-      y: cy + r * Math.sin(this.toRadians(i))
+      x: precisionRound(cx + r * Math.cos(this.toRadians(i))),
+      y: precisionRound(cy + r * Math.sin(this.toRadians(i)))
     });
   }
 
@@ -270,7 +275,7 @@ function Node (commit, tree) {
   this.committer = commit.committer().toString();
   this.message = commit.message();
   this.brief = this.message.substring(0, 100).replace(/\n[^]+$/, '').
-    replace(/[^\w\s]/g, '');
+    replace(/[^\w:\-_\s]/g, '').trim();
   this.summary = commit.summary();
   this.timestamp = commit.timeMs();
   this.order = this.timestamp;
