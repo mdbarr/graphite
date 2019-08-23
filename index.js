@@ -311,21 +311,8 @@ Node.prototype.setBranch = function (name) {
       this.tree.initial = this;
     }
 
-    if (name === 'stash') {
-      this.setStash();
-    }
-
     if (this.parents.length) {
       this.parents[0].setBranch(name);
-    }
-  }
-};
-
-Node.prototype.setStash = function() {
-  this.stash = true;
-  for (const parent of this.parents) {
-    if (!parent.branch) {
-      parent.stash = true;
     }
   }
 };
@@ -440,7 +427,7 @@ Node.sorter = (a, b) => {
 function Griff({
   repository = process.cwd(), master = 'master', limit = Infinity, colors,
   save = false, filename = 'graph.svg', text = false, shape = 'hexagon',
-  titles = false, background = '#333'
+  titles = false, background = '#333', stashes = false
 } = {}) {
   shape = shape !== 'hexagon' ? 'circle' : 'hexagon';
 
@@ -468,23 +455,26 @@ function Griff({
 
   //////////
 
+  const openPromise = git.Repository.open(path.resolve(repository, '.git'));
+
+  //////////
+
   this.generate = () => {
     const tree = new Tree({ master });
     const svg = new SVG({ background });
 
-    return git.Repository.open(path.resolve(repository, '.git')).
+    return openPromise.
       then((repo) => {
         return repo.getReferences().
           then((references) => {
             return Promise.all(references.map((reference) => {
               let name = reference.name();
-              if (reference.isBranch() || name === 'refs/stash' ||
-                  name.startsWith('refs/remotes/origin/')) {
+              if ((reference.isBranch() || name.startsWith('refs/remotes/origin/')) &&
+                  name !== 'refs/stash') {
                 return git.Reference.nameToId(repo, name).
                   then((oid) => {
                     name = name.replace(/^refs\/heads\//, '').
-                      replace(/^refs\/remotes\//, '').
-                      replace(/^refs\/stash$/, 'stash');
+                      replace(/^refs\/remotes\//, '');
 
                     tree.branches.set(name, oid.toString());
                   });
@@ -502,8 +492,8 @@ function Griff({
           then(() => {
             const revwalk = git.Revwalk.create(repo);
 
-            revwalk.pushGlob('*');
-            revwalk.pushRef('origin/*');
+            revwalk.pushGlob('refs/heads/*');
+            revwalk.pushGlob('refs/remotes/*');
 
             revwalk.sorting(git.Revwalk.TOPOLOGICAL);
 
@@ -513,6 +503,50 @@ function Griff({
                   return new Node(commit, tree);
                 });
               });
+          }).
+          then(() => {
+            if (stashes) {
+              return git.Reflog.read(repo, 'refs/stash').
+                then((reflog) => {
+                  const stashIndex = new Map();
+                  const stashed = [];
+                  for (let index = 0; index < reflog.entrycount(); index++) {
+                    const entry = reflog.entryByIndex(index);
+                    const sha = entry.idNew().toString();
+                    const branch = `stash{${ index }}`;
+                    tree.branches.set(branch, sha);
+                    stashIndex.set(sha, branch);
+
+                    stashed.push(repo.getCommit(entry.idNew()));
+                  }
+                  return Promise.all(stashed).
+                    then((commits) => {
+                      const lookups = [];
+                      commits.forEach((commit) => {
+                        const node = new Node(commit, tree);
+                        const branch = stashIndex.get(node.sha);
+                        node.stash = true;
+                        node.branch = branch;
+
+                        node.parents.forEach((parent) => {
+                          if (!tree.index.has(parent)) {
+                            lookups.push(repo.getCommit(parent).
+                              then((pcommit) => {
+                                const pnode = new Node(pcommit, tree);
+                                pnode.stash = true;
+                                if (node.parents.indexOf(pnode.sha) === 1) {
+                                  pnode.branch = `${ branch }/index`;
+                                }
+                                return pnode;
+                              }));
+                          }
+                        });
+                      });
+                      return Promise.all(lookups);
+                    });
+                });
+            }
+            return true;
           });
       }).
       then(() => {
@@ -633,7 +667,8 @@ function Griff({
                 x2: cx,
                 y2: cy,
                 stroke: getColor(child.branch),
-                fill: getColor(child.branch)
+                fill: getColor(child.branch),
+                strokeDasharray: child.stash ? 1 : false
               });
             } else {
               let d;
