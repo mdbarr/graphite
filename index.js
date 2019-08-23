@@ -455,12 +455,39 @@ function Griff({
 
   //////////
 
+  let tree;
   const openPromise = git.Repository.open(path.resolve(repository, '.git'));
 
   //////////
 
-  this.generate = () => {
-    const tree = new Tree({ master });
+  this.details = (sha) => {
+    if (tree && tree.index.has(sha)) {
+      const node = tree.index.get(sha);
+      const details = {
+        sha: node.sha,
+        short: node.short,
+        author: node.author,
+        body: node.body,
+        committer: node.committer,
+        message: node.message,
+        brief: node.brief,
+        summary: node.summary,
+        timestamp: node.timestamp,
+        branch: node.branch,
+        stash: node.stash
+      };
+
+      return details;
+    }
+
+    return null;
+  };
+
+  //////////
+
+  this.generate = (callback) => {
+    tree = new Tree({ master });
+
     const svg = new SVG({ background });
 
     return openPromise.
@@ -706,6 +733,9 @@ function Griff({
               return resolve(image);
             });
           });
+        }
+        if (typeof callback === 'function') {
+          return callback(null, image);
         }
         return image;
       });
