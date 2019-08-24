@@ -15,7 +15,7 @@
     "nodegit": "^0.25.1"
   },
   "devDependencies": {
-    "eslint": "^6.2.0"
+    "eslint": "^6.2.2"
   },
   "scripts": {
     "lint": "eslint *.js"
