@@ -426,8 +426,8 @@ Node.sorter = (a, b) => {
 
 function Griff({
   repository = process.cwd(), master = 'master', limit = Infinity, colors,
-  save = false, filename = 'graph.svg', text = false, shape = 'hexagon',
-  titles = false, background = '#333', stashes = false
+  save = false, filename = 'graph.svg', labels = false, descriptions = false,
+  shape = 'hexagon', titles = false, background = '#333', stashes = false
 } = {}) {
   shape = shape !== 'hexagon' ? 'circle' : 'hexagon';
 
@@ -632,9 +632,9 @@ function Griff({
           fill: background
         });
 
-        let labels;
-        if (text) {
-          labels = svg.group({
+        let text;
+        if (labels || descriptions) {
+          text = svg.group({
             name: 'labels',
             textAnchor: 'start',
             fill: 'white',
@@ -651,7 +651,7 @@ function Griff({
           x *= 16;
           y *= 16;
 
-          x += text ? 68 : 10;
+          x += labels ? 68 : 10;
           return [ x, y ];
         };
 
@@ -662,8 +662,8 @@ function Griff({
 
           const [ nx, ny ] = scale(node.x, node.y);
 
-          if (text) {
-            labels.text({
+          if (labels) {
+            text.text({
               x: 6,
               y: ny + 3,
               text: node.short.toUpperCase()
@@ -681,8 +681,11 @@ function Griff({
             title: titles ? `[${ node.branch }] ${ node.short }: ${ node.brief }` : false
           });
 
+          let right = nx;
+
           for (const child of node.children) {
             const [ cx, cy ] = scale(child.x, child.y);
+            right = Math.max(right, cx);
 
             width = Math.max(width, cx);
             height = Math.max(height, cy);
@@ -715,6 +718,17 @@ function Griff({
                 strokeDasharray: child.stash ? 2 : false
               });
             }
+          }
+
+          if (descriptions) {
+            const description = `[${ node.branch }] ${ node.brief }`
+            text.text({
+              x: right + 10,
+              y: ny + 2.5,
+              text: description
+            });
+
+            width += (description.length * 10) + 10;
           }
         }
 
