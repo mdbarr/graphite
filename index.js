@@ -238,6 +238,7 @@ function Tree({ master }) {
   this.nodes = [ ];
   this.index = new Map();
   this.branches = new Map();
+  this.references = new Map();
   this.tags = new Map();
   this.initial = null;
 
@@ -504,6 +505,7 @@ function Griff({
                       replace(/^refs\/remotes\//, '');
 
                     tree.branches.set(name, oid.toString());
+                    tree.references.set(oid.toString(), name);
                   });
               } else if (reference.isTag()) {
                 return git.Reference.nameToId(repo, name).
@@ -619,6 +621,8 @@ function Griff({
       }).
       then(() => {
         const lines = [];
+        const righthand = [];
+
         for (let l = 0; l < tree.slots.length; l++) {
           lines.unshift(svg.group({
             name: `lines-${ tree.slots.length - l }`,
@@ -662,6 +666,8 @@ function Griff({
 
           const [ nx, ny ] = scale(node.x, node.y);
 
+          righthand[node.y] = Math.max(righthand[node.y] || 0, nx);
+
           if (labels) {
             text.text({
               x: 6,
@@ -681,11 +687,14 @@ function Griff({
             title: titles ? `[${ node.branch }] ${ node.short }: ${ node.brief }` : false
           });
 
-          let right = nx;
-
           for (const child of node.children) {
             const [ cx, cy ] = scale(child.x, child.y);
-            right = Math.max(right, cx);
+
+            righthand[child.y] = Math.max(righthand[child.y] || 0, cx);
+
+            for (let dy = node.y; dy >= child.y; dy--) {
+              righthand[dy] = Math.max(righthand[dy] || 0, cx, nx);
+            }
 
             width = Math.max(width, cx);
             height = Math.max(height, cy);
@@ -719,16 +728,28 @@ function Griff({
               });
             }
           }
+        }
 
-          if (descriptions) {
-            const description = `[${ node.branch }] ${ node.brief }`
+        if (descriptions) {
+          for (const node of tree.nodes) {
+            if (node.y > limit) {
+              continue;
+            }
+
+            const nx = righthand[node.y];
+            const [ , ny ] = scale(node.x, node.y);
+
+            const reference = tree.references.get(node.sha);
+
+            const description = reference ? `[${ reference }] ${ node.brief }` : node.brief;
+
             text.text({
-              x: right + 10,
+              x: nx + 10,
               y: ny + 2.5,
               text: description
             });
 
-            width += (description.length * 10) + 10;
+            width = Math.max(width, description.length * 4 + nx + 10);
           }
         }
 
