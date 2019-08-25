@@ -434,7 +434,8 @@ Node.sorter = (a, b) => {
 function Griff({
   repository = process.cwd(), master = 'master', limit = Infinity, colors,
   save = false, filename = 'graph.svg', labels = false, descriptions = false,
-  shape = 'hexagon', titles = false, background = '#333', stashes = false
+  shape = 'hexagon', titles = false, background = '#333', stashes = false,
+  data = false
 } = {}) {
   shape = shape !== 'hexagon' ? 'circle' : 'hexagon';
 
@@ -678,7 +679,8 @@ function Griff({
             text.text({
               x: 6,
               y: ny + 3,
-              text: node.short.toUpperCase()
+              text: node.short.toUpperCase(),
+              dataSha: data ? node.sha : false
             });
           }
 
@@ -690,7 +692,8 @@ function Griff({
             cy: ny,
             r: 4,
             stroke: getColor(node.branch),
-            title: titles ? `[${ node.branch }] ${ node.short }: ${ node.brief }` : false
+            title: titles ? `[${ node.branch }] ${ node.short }: ${ node.brief }` : false,
+            dataSha: data ? node.sha : false
           });
 
           for (const child of node.children) {
@@ -768,7 +771,8 @@ function Griff({
             text.text({
               x: nx + 12,
               y: ny + 2.5,
-              text: description
+              text: description,
+              dataSha: data ? node.sha : false
             });
 
             width = Math.max(width, length * 6 + nx + 12);
