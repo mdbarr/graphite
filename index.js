@@ -221,7 +221,7 @@ Slots.prototype.get = function(y, branch) {
 };
 
 Slots.prototype.del = function(i, y, branch) {
-  if (typeof this.slots[i] === 'string') {
+  if (i !== 0 && typeof this.slots[i] === 'string') {
     this.slots[i] = y;
 
     if (branch) {
