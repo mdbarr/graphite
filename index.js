@@ -247,6 +247,12 @@ function Tree({ master }) {
   this.branches.set(this.master, null);
 }
 
+Tree.prototype.addReference = function(sha, reference) {
+  const references = this.references.get(sha) || new Set();
+  references.add(reference);
+  this.references.set(sha, references);
+};
+
 //////////
 
 function Node (commit, tree) {
@@ -505,7 +511,7 @@ function Griff({
                       replace(/^refs\/remotes\//, '');
 
                     tree.branches.set(name, oid.toString());
-                    tree.references.set(oid.toString(), name);
+                    tree.addReference(oid.toString(), name);
                   });
               } else if (reference.isTag()) {
                 return git.Reference.nameToId(repo, name).
@@ -739,17 +745,33 @@ function Griff({
             const nx = righthand[node.y];
             const [ , ny ] = scale(node.x, node.y);
 
-            const reference = tree.references.get(node.sha);
+            const references = tree.references.has(node.sha) ?
+              Array.from(tree.references.get(node.sha)) :
+              false;
 
-            const description = reference ? `[${ reference }] ${ node.brief }` : node.brief;
+            let description;
+            let length = 0;
+
+            if (references) {
+              length = `[${ references.join('] [ ') }] ${ node.brief }`.length;
+
+              description = references.map((reference) => {
+                return `<tspan fill="${ getColor(reference) }">[${ reference }]</tspan>`;
+              }).join(' ');
+
+              description += ` ${ node.brief }`;
+            } else {
+              description = node.brief;
+              length = node.brief.length;
+            }
 
             text.text({
-              x: nx + 10,
+              x: nx + 12,
               y: ny + 2.5,
               text: description
             });
 
-            width = Math.max(width, description.length * 4 + nx + 10);
+            width = Math.max(width, length * 6 + nx + 12);
           }
         }
 
