@@ -512,13 +512,14 @@ function Griff({
                       replace(/^refs\/remotes\//, '');
 
                     tree.branches.set(name, oid.toString());
-                    tree.addReference(oid.toString(), name);
+                    tree.addReference(oid.toString(), `[${ name }]`);
                   });
               } else if (reference.isTag()) {
                 return git.Reference.nameToId(repo, name).
                   then((oid) => {
                     name = name.replace(/^refs\/tags\//, '');
                     tree.tags.set(name, oid.toString());
+                    tree.addReference(oid.toString(), `<${ name }>`);
                   });
               }
 
@@ -756,10 +757,15 @@ function Griff({
             let length = 0;
 
             if (references) {
-              length = `[${ references.join('] [ ') }] ${ node.brief }`.length;
+              length = references.join(' ').length + node.brief.length + 1;
 
               description = references.map((reference) => {
-                return `<tspan fill="${ getColor(reference) }">[${ reference }]</tspan>`;
+                const name = reference.substring(1, reference.length - 1);
+                const color = getColor(name);
+                const ref = data ? ` data-ref="${ name }"` : '';
+
+                reference = reference.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `<tspan fill="${ color }"${ ref }>${ reference }</tspan>`;
               }).join(' ');
 
               description += ` ${ node.brief }`;
