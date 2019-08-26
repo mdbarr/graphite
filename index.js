@@ -508,11 +508,13 @@ function Griff({
                   name !== 'refs/stash') {
                 return git.Reference.nameToId(repo, name).
                   then((oid) => {
+                    const remote = name.includes('refs/remotes');
                     name = name.replace(/^refs\/heads\//, '').
                       replace(/^refs\/remotes\//, '');
 
                     tree.branches.set(name, oid.toString());
-                    tree.addReference(oid.toString(), `[${ name }]`);
+
+                    tree.addReference(oid.toString(), remote ? `{${ name }}` : `[${ name }]`);
                   });
               } else if (reference.isTag()) {
                 return git.Reference.nameToId(repo, name).
@@ -553,6 +555,7 @@ function Griff({
                     const branch = `stash{${ index }}`;
                     tree.branches.set(branch, sha);
                     stashIndex.set(sha, branch);
+                    tree.addReference(sha, ` stash@{${ index }} `);
 
                     stashed.push(repo.getCommit(entry.idNew()));
                   }
@@ -750,7 +753,7 @@ function Griff({
             const [ , ny ] = scale(node.x, node.y);
 
             const references = tree.references.has(node.sha) ?
-              Array.from(tree.references.get(node.sha)) :
+              Array.from(tree.references.get(node.sha)).sort() :
               false;
 
             let description;
@@ -760,7 +763,7 @@ function Griff({
               length = references.join(' ').length + node.brief.length + 1;
 
               description = references.map((reference) => {
-                const name = reference.substring(1, reference.length - 1);
+                const name = reference.substring(1, reference.length - 1).trim();
                 const color = getColor(name);
                 const ref = data ? ` data-ref="${ name }"` : '';
 
