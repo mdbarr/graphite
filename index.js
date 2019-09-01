@@ -438,7 +438,7 @@ function Griff({
   repository = process.cwd(), primary = 'master', head = false, limit = Infinity,
   colors, save = false, filename = 'graph.svg', labels = false,
   descriptions = false, shape = 'hexagon', titles = false, background = '#333',
-  stashes = false, data = false
+  textColor = '#fff', stashes = false, data = false
 } = {}) {
   shape = shape !== 'hexagon' ? 'circle' : 'hexagon';
 
@@ -667,7 +667,7 @@ function Griff({
           text = svg.group({
             name: 'labels',
             textAnchor: 'start',
-            fill: 'white',
+            fill: textColor,
             fontSize: '10px',
             fontWeight: '300',
             fontFamily: 'monospace'
