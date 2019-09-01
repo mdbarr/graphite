@@ -766,6 +766,8 @@ function Griff({
         }
 
         if (descriptions) {
+          const increment = Math.ceil(size * (3 / 5));
+
           for (const node of tree.nodes) {
             if (node.y > limit) {
               continue;
@@ -806,7 +808,7 @@ function Griff({
               dataSha: data ? node.sha : false
             });
 
-            width = Math.max(width, length * 6 + nx + 12);
+            width = Math.max(width, length * increment + nx + 12);
           }
         }
 
