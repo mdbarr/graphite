@@ -232,8 +232,8 @@ Slots.prototype.del = function(i, y, branch) {
 
 //////////
 
-function Tree({ master }) {
-  this.master = master;
+function Tree() {
+  this.primary = null;
 
   this.nodes = [ ];
   this.index = new Map();
@@ -243,9 +243,12 @@ function Tree({ master }) {
   this.initial = null;
 
   this.slots = new Slots();
-
-  this.branches.set(this.master, null);
 }
+
+Tree.prototype.setPrimary = function(primary) {
+  this.primary = primary;
+  this.branches.set(this.primary, null);
+};
 
 Tree.prototype.addReference = function(sha, reference) {
   const references = this.references.get(sha) || new Set();
@@ -313,7 +316,7 @@ Node.prototype.setBranch = function (name) {
   if (!this.branch) {
     this.branch = name;
 
-    if (name === this.tree.master && !this.tree.initial && this.parents.length === 0
+    if (name === this.tree.primary && !this.tree.initial && this.parents.length === 0
         && this.children.length) {
       this.tree.initial = this;
     }
@@ -432,10 +435,10 @@ Node.sorter = (a, b) => {
 //////////
 
 function Griff({
-  repository = process.cwd(), master = 'master', limit = Infinity, colors,
-  save = false, filename = 'graph.svg', labels = false, descriptions = false,
-  shape = 'hexagon', titles = false, background = '#333', stashes = false,
-  data = false
+  repository = process.cwd(), primary = 'master', head = false, limit = Infinity,
+  colors, save = false, filename = 'graph.svg', labels = false,
+  descriptions = false, shape = 'hexagon', titles = false, background = '#333',
+  stashes = false, data = false
 } = {}) {
   shape = shape !== 'hexagon' ? 'circle' : 'hexagon';
 
@@ -458,8 +461,6 @@ function Griff({
 
     return color;
   }
-
-  getColor(master);
 
   //////////
 
@@ -494,13 +495,27 @@ function Griff({
   //////////
 
   this.generate = (callback) => {
-    tree = new Tree({ master });
+    tree = new Tree();
 
     const svg = new SVG({ background });
 
     return openPromise.
       then((repo) => {
-        return repo.getReferences().
+        return repo.head().
+          then((reference) => {
+            let name;
+
+            if (head) {
+              name = reference.name().replace('refs/heads/', '');
+            } else {
+              name = primary;
+            }
+
+            tree.setPrimary(name);
+            getColor(name);
+
+            return repo.getReferences();
+          }).
           then((references) => {
             return Promise.all(references.map((reference) => {
               let name = reference.name();
