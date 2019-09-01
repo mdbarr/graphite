@@ -441,9 +441,13 @@ function Griff({
   repository = process.cwd(), primary = 'master', head = false, limit = Infinity,
   colors, save = false, filename = 'graph.svg', labels = false,
   descriptions = false, shape = 'hexagon', titles = false, background = '#333',
-  textColor = '#fff', size = 10, stashes = false, data = false
+  textColor = '#fff', size = 10, strokeWidth = 2, stashes = false, data = false
 } = {}) {
   shape = shape !== 'hexagon' ? 'circle' : 'hexagon';
+
+  if (typeof strokeWidth === 'number') {
+    strokeWidth = `${ strokeWidth }px`;
+  }
 
   colors = colors || shuffle(Array.from(COLORS));
 
@@ -655,13 +659,13 @@ function Griff({
         for (let l = 0; l < tree.slots.length; l++) {
           lines.unshift(svg.group({
             name: `lines-${ tree.slots.length - l }`,
-            strokeWidth: 2
+            strokeWidth
           }));
         }
 
         const dots = svg.group({
           name: 'dots',
-          strokeWidth: 2,
+          strokeWidth,
           fill: background
         });
 
