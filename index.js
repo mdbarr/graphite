@@ -117,8 +117,6 @@ SVG.prototype.hexagon = function({
 }) {
   const attributes = this.attributes(options);
 
-  r += 1;
-
   let points = [];
   for (let i = 0; i < 360; i += 60) {
     points.push({
@@ -169,11 +167,13 @@ SVG.prototype.group = function({
   return group;
 };
 
-SVG.prototype.render = function({ root = true } = {}) {
+SVG.prototype.render = function({
+  size, root = true
+} = {}) {
   let image = '';
   if (root) {
-    this.width += 10;
-    this.height += 10;
+    this.width += size + 2;
+    this.height += size + 2;
 
     image = `<svg width="${ this.width }" height="${ this.height }" ` +
       `viewBox="0 0 ${ this.width } ${ this.height }" xmlns="http://www.w3.org/2000/svg" ` +
@@ -181,7 +181,10 @@ SVG.prototype.render = function({ root = true } = {}) {
   }
 
   for (const group of this.groups) {
-    image += `<g${ group.style }>${ group.render({ root: false }) }</g>`;
+    image += `<g${ group.style }>${ group.render({
+      size,
+      root: false
+    }) }</g>`;
   }
   image += this.elements.join('');
 
@@ -438,7 +441,7 @@ function Griff({
   repository = process.cwd(), primary = 'master', head = false, limit = Infinity,
   colors, save = false, filename = 'graph.svg', labels = false,
   descriptions = false, shape = 'hexagon', titles = false, background = '#333',
-  textColor = '#fff', stashes = false, data = false
+  textColor = '#fff', size = 10, stashes = false, data = false
 } = {}) {
   shape = shape !== 'hexagon' ? 'circle' : 'hexagon';
 
@@ -668,7 +671,7 @@ function Griff({
             name: 'labels',
             textAnchor: 'start',
             fill: textColor,
-            fontSize: '10px',
+            fontSize: `${ size }px`,
             fontWeight: '300',
             fontFamily: 'monospace'
           });
@@ -678,10 +681,10 @@ function Griff({
         let height = 0;
 
         const scale = (x, y) => {
-          x *= 16;
-          y *= 16;
+          x *= size + 6;
+          y *= size + 6;
 
-          x += labels ? 68 : 10;
+          x += labels ? size * 6 + 8 : 10;
           return [ x, y ];
         };
 
@@ -709,7 +712,7 @@ function Griff({
           dots[shape]({
             cx: nx,
             cy: ny,
-            r: 4,
+            r: Math.floor(size / 2),
             stroke: getColor(node.branch),
             title: titles ? `[${ node.branch }] ${ node.short }: ${ node.brief }` : false,
             dataSha: data ? node.sha : false
@@ -793,7 +796,7 @@ function Griff({
             }
 
             text.text({
-              x: nx + 12,
+              x: nx + size + 2,
               y: ny + 2.5,
               text: description,
               dataSha: data ? node.sha : false
@@ -806,7 +809,7 @@ function Griff({
         svg.width = width;
         svg.height = height;
 
-        return svg.render();
+        return svg.render({ size });
       }).
       then((image) => {
         if (save) {
