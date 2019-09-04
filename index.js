@@ -19,7 +19,15 @@ const COLORS = [
 
   '#FF8A80', '#FF80AB', '#EA80FC', '#B388FF', '#8C9EFF', '#82B1FF',
   '#80D8FF', '#84FFFF', '#A7FFEB', '#B9F6CA', '#CCFF90', '#F4FF81',
-  '#FFFF8D', '#FFE57F', '#FFD180', '#FF9E80'
+  '#FFFF8D', '#FFE57F', '#FFD180', '#FF9E80',
+
+  '#E53935', '#D81B60', '#8E24AA', '#5E35B1', '#3949AB', '#1E88E5',
+  '#039BE5', '#00ACC1', '#00897B', '#43A047', '#7CB342', '#C0CA33',
+  '#FDD835', '#FFB300', '#FB8C00', '#F4511E',
+
+  '#EF5350', '#EC407A', '#AB47BC', '#7E57C2', '#5C6BC0', '#42A5F5',
+  '#29B6F6', '#26C6DA', '#26A69A', '#66BB6A', '#9CCC65', '#D4E157',
+  '#FFEE58', '#FFCA28', '#FFA726', '#FF7043'
 ];
 
 //////////
@@ -448,7 +456,8 @@ function Griff({
   repository = process.cwd(), primary = 'master', head = false, limit = Infinity,
   colors, save = false, filename = 'graph.svg', labels = false,
   descriptions = false, shape = 'hexagon', titles = false, background = '#333',
-  textColor = '#fff', size = 10, strokeWidth = 2, stashes = false, data = false
+  textColor = '#fff', size = 10, strokeWidth = 2, stashes = false, data = false,
+  startColor = '#42A5F5'
 } = {}) {
   shape = shape !== 'hexagon' ? 'circle' : 'hexagon';
 
@@ -456,9 +465,9 @@ function Griff({
     strokeWidth = `${ strokeWidth }px`;
   }
 
-  colors = colors || shuffle(Array.from(COLORS));
+  colors = colors || shuffle(shuffle(Array.from(COLORS)));
 
-  let colorIndex = colors.indexOf('#2979FF') || 0;
+  let colorIndex = colors.indexOf(startColor) || 0;
   const colorMap = new Map();
 
   function getColor(branch) {
