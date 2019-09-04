@@ -56,6 +56,14 @@ function generateBranchName(length = 8) {
   return generated;
 }
 
+function sanitize(text = '') {
+  return text.replace(/&/g, '&amp;').
+    replace(/</g, '&lt;').
+    replace(/>/g, '&gt;').
+    replace(/"/g, '&quote;').
+    replace(/'/g, '&apos;');
+}
+
 //////////
 
 function SVG({
@@ -280,7 +288,6 @@ function Node (commit, tree) {
   this.message = commit.message();
   this.brief = this.message.substring(0, 100).
     replace(/\n[^]+$/, '').
-    replace(/[<>"]/g, '').
     trim();
 
   this.summary = commit.summary();
@@ -714,7 +721,7 @@ function Griff({
             cy: ny,
             r: Math.floor(size / 2),
             stroke: getColor(node.branch),
-            title: titles ? `[${ node.branch }] ${ node.short }: ${ node.brief }` : false,
+            title: titles ? `[${ node.branch }] ${ node.short }: ${ node.safe }` : false,
             dataSha: data ? node.sha : false
           });
 
@@ -787,11 +794,11 @@ function Griff({
                 const color = getColor(name);
                 const ref = data ? ` data-ref="${ name }"` : '';
 
-                reference = reference.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                return `<tspan fill="${ color }"${ ref }>${ reference }</tspan>`;
+                return `<tspan fill="${ color }"${ ref }>` +
+                  `${ sanitize(reference) }</tspan>`;
               }).join(' ');
 
-              description += ` ${ node.brief }`;
+              description += ` ${ sanitize(node.brief) }`;
             } else {
               description = node.brief;
               length = node.brief.length;
