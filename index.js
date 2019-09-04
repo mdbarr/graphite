@@ -280,7 +280,7 @@ function Node (commit, tree) {
   this.message = commit.message();
   this.brief = this.message.substring(0, 100).
     replace(/\n[^]+$/, '').
-    replace(/[^\w:\-_\s]/g, '').
+    replace(/[<>"]/g, '').
     trim();
 
   this.summary = commit.summary();
@@ -524,31 +524,27 @@ function Griff({
             return repo.getReferences();
           }).
           then((references) => {
-            return Promise.all(references.map((reference) => {
+            for (const reference of references) {
               let name = reference.name();
+              let id = reference.target().toString();
               if ((reference.isBranch() || name.startsWith('refs/remotes/origin/')) &&
                   name !== 'refs/stash') {
-                return git.Reference.nameToId(repo, name).
-                  then((oid) => {
-                    const remote = name.includes('refs/remotes');
-                    name = name.replace(/^refs\/heads\//, '').
-                      replace(/^refs\/remotes\//, '');
+                const remote = name.includes('refs/remotes');
+                name = name.replace(/^refs\/heads\//, '').
+                  replace(/^refs\/remotes\//, '');
 
-                    tree.branches.set(name, oid.toString());
-
-                    tree.addReference(oid.toString(), remote ? `{${ name }}` : `[${ name }]`);
-                  });
+                tree.branches.set(name, id);
+                tree.addReference(id, remote ? `{${ name }}` : `[${ name }]`);
               } else if (reference.isTag()) {
-                return git.Reference.nameToId(repo, name).
-                  then((oid) => {
-                    name = name.replace(/^refs\/tags\//, '');
-                    tree.tags.set(name, oid.toString());
-                    tree.addReference(oid.toString(), `<${ name }>`);
-                  });
-              }
+                if (reference.targetPeel()) {
+                  id = reference.targetPeel().toString();
+                }
 
-              return true;
-            }));
+                name = name.replace(/^refs\/tags\//, '');
+                tree.tags.set(name, id);
+                tree.addReference(id, `<${ name }>`);
+              }
+            }
           }).
           then(() => {
             const revwalk = git.Revwalk.create(repo);
