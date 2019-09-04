@@ -68,7 +68,7 @@ function sanitize(text = '') {
   return text.replace(/&/g, '&amp;').
     replace(/</g, '&lt;').
     replace(/>/g, '&gt;').
-    replace(/"/g, '&quote;').
+    replace(/"/g, '&quot;').
     replace(/'/g, '&apos;');
 }
 
@@ -104,7 +104,10 @@ SVG.prototype.attributes = function(options) {
     attributes.push(`${ attr }="${ value }"`);
   }
 
-  return ` ${ attributes.join(' ') }`;
+  if (attributes.length) {
+    return ` ${ attributes.join(' ') }`;
+  }
+  return '';
 };
 
 SVG.prototype.line = function({
@@ -809,7 +812,7 @@ function Griff({
 
               description += ` ${ sanitize(node.brief) }`;
             } else {
-              description = node.brief;
+              description = sanitize(node.brief);
               length = node.brief.length;
             }
 
