@@ -12,10 +12,10 @@
   },
   "dependencies": {
     "minimist": "^1.2.0",
-    "nodegit": "^0.26.2"
+    "nodegit": "^0.26.3"
   },
   "devDependencies": {
-    "eslint": "^6.5.1"
+    "eslint": "^6.7.2"
   },
   "scripts": {
     "lint": "eslint *.js"
