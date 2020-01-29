@@ -2,9 +2,9 @@
 'use strict';
 
 const Griff = require('./index');
-const minimist = require('minimist');
 
-const options = minimist(process.argv.slice(2));
+const options = require('yargs').argv;;
+
 if (options._.length === 1 && options._[0] === '-') {
   options.output = true;
 } else if (options.save === undefined) {
