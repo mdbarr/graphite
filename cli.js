@@ -3,7 +3,7 @@
 
 const Griff = require('./index');
 
-const options = require('yargs').argv;;
+const options = require('yargs').argv;
 
 if (options._.length === 1 && options._[0] === '-') {
   options.output = true;

@@ -32,11 +32,11 @@ const COLORS = [
 
 //////////
 
-function rand(min, max) {
+function rand (min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function shuffle(array) {
+function shuffle (array) {
   let j;
   let x;
   let i;
@@ -50,12 +50,12 @@ function shuffle(array) {
   return array;
 }
 
-function precisionRound(number, precision = 2) {
+function precisionRound (number, precision = 2) {
   const factor = Math.pow(10, precision);
   return Math.round(number * factor) / factor;
 }
 
-function generateBranchName(length = 8) {
+function generateBranchName (length = 8) {
   const possibleAlphaNumerics = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890';
   let generated = '';
   for (let i = 0; i < length; i++) {
@@ -64,7 +64,7 @@ function generateBranchName(length = 8) {
   return generated;
 }
 
-function sanitize(text = '') {
+function sanitize (text = '') {
   return text.replace(/&/g, '&amp;').
     replace(/</g, '&lt;').
     replace(/>/g, '&gt;').
@@ -74,7 +74,7 @@ function sanitize(text = '') {
 
 //////////
 
-function SVG({
+function SVG ({
   width = 100, height = 100, background = '#333'
 } = {}) {
   this.width = width;
@@ -216,7 +216,7 @@ SVG.prototype.render = function({
 
 //////////
 
-function Slots() {
+function Slots () {
   this.slots = [];
   this.index = new Map();
   this.length = 0;
@@ -254,7 +254,7 @@ Slots.prototype.del = function(i, y, branch) {
 
 //////////
 
-function Tree() {
+function Tree () {
   this.primary = null;
 
   this.nodes = [ ];
@@ -455,7 +455,7 @@ Node.sorter = (a, b) => {
 
 //////////
 
-function Griff({
+function Griff ({
   repository = process.cwd(), primary = 'master', head = false, limit = Infinity,
   colors, save = false, filename = 'graph.svg', labels = false,
   descriptions = false, shape = 'hexagon', titles = false, background = '#333',
@@ -473,7 +473,7 @@ function Griff({
   let colorIndex = colors.indexOf(startColor) || 0;
   const colorMap = new Map();
 
-  function getColor(branch) {
+  function getColor (branch) {
     if (colorMap.has(branch)) {
       return colorMap.get(branch);
     }
