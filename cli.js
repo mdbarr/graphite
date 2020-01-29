@@ -24,6 +24,7 @@ const options = require('yargs').
     filename: {
       describe: 'file name to use when saving results',
       default: 'graph.svg',
+      normalize: true,
       type: 'string'
     },
     head: {
@@ -49,16 +50,19 @@ const options = require('yargs').
     repository: {
       describe: 'path to the git repository',
       default: process.cwd(),
+      normalize: true,
       type: 'string'
     },
     save: {
       describe: 'save results to a file rather than printing to stdout',
       default: true,
+      implies: 'filename',
       type: 'boolean'
     },
     shape: {
       describe: 'shape to draw for commits in graph',
       default: 'hexagon',
+      choices: [ 'circle', 'hexagon' ],
       type: 'string'
     },
     size: {
