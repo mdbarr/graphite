@@ -91,6 +91,7 @@ const options = require('yargs').
       type: 'boolean'
     }
   }).
+  config().
   help('h').
   alias('h', 'help').
   argv;
