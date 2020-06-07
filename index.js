@@ -27,7 +27,7 @@ const COLORS = [
 
   '#EF5350', '#EC407A', '#AB47BC', '#7E57C2', '#5C6BC0', '#42A5F5',
   '#29B6F6', '#26C6DA', '#26A69A', '#66BB6A', '#9CCC65', '#D4E157',
-  '#FFEE58', '#FFCA28', '#FFA726', '#FF7043'
+  '#FFEE58', '#FFCA28', '#FFA726', '#FF7043',
 ];
 
 //////////
@@ -75,7 +75,7 @@ function sanitize (text = '') {
 //////////
 
 function SVG ({
-  width = 100, height = 100, background = '#333'
+  width = 100, height = 100, background = '#333',
 } = {}) {
   this.width = width;
   this.height = height;
@@ -87,9 +87,7 @@ function SVG ({
 SVG.prototype.attributes = function(options) {
   const attributes = [ ];
   for (const key in options) {
-    const attr = key.replace(/([A-Z])/g, (match, letter) => {
-      return `-${ letter.toLowerCase() }`;
-    });
+    const attr = key.replace(/([A-Z])/g, (match, letter) => `-${ letter.toLowerCase() }`);
 
     let value = options[key];
     if (!value) {
@@ -129,7 +127,7 @@ SVG.prototype.circle = function({
   return this;
 };
 
-SVG.prototype.toRadians = (angle) => { return angle * (Math.PI / 180); };
+SVG.prototype.toRadians = (angle) => angle * (Math.PI / 180);
 
 SVG.prototype.hexagon = function({
   cx, cy, r, rotation = 30, ...options
@@ -140,11 +138,11 @@ SVG.prototype.hexagon = function({
   for (let i = 0; i < 360; i += 60) {
     points.push({
       x: precisionRound(cx + r * Math.cos(this.toRadians(i + rotation))),
-      y: precisionRound(cy + r * Math.sin(this.toRadians(i + rotation)))
+      y: precisionRound(cy + r * Math.sin(this.toRadians(i + rotation))),
     });
   }
 
-  points = points.map((point) => { return `${ point.x },${ point.y }`; }).join(' ');
+  points = points.map((point) => `${ point.x },${ point.y }`).join(' ');
 
   const element = `<polygon points="${ points }"${ attributes }/>`;
   this.elements.unshift(element);
@@ -152,9 +150,7 @@ SVG.prototype.hexagon = function({
   return this;
 };
 
-SVG.prototype.path = function({
-  d, ...options
-}) {
+SVG.prototype.path = function({ d, ...options }) {
   const attributes = this.attributes(options);
   const element = `<path d="${ d }"${ attributes }/>`;
   this.elements.unshift(element);
@@ -172,9 +168,7 @@ SVG.prototype.text = function({
   return this;
 };
 
-SVG.prototype.group = function({
-  name, ...options
-}) {
+SVG.prototype.group = function({ name, ...options }) {
   const group = new SVG();
   this.groups.push(group);
 
@@ -186,9 +180,7 @@ SVG.prototype.group = function({
   return group;
 };
 
-SVG.prototype.render = function({
-  size, root = true
-} = {}) {
+SVG.prototype.render = function({ size, root = true } = {}) {
   let image = '';
   if (root) {
     this.width += size + 2;
@@ -202,7 +194,7 @@ SVG.prototype.render = function({
   for (const group of this.groups) {
     image += `<g${ group.style }>${ group.render({
       size,
-      root: false
+      root: false,
     }) }</g>`;
   }
   image += this.elements.join('');
@@ -306,7 +298,7 @@ function Node (commit, tree) {
   this.timestamp = commit.timeMs();
   this.order = this.timestamp;
 
-  this.parents = commit.parents().map(oid => { return oid.toString(); });
+  this.parents = commit.parents().map(oid => oid.toString());
   this.children = [ ];
 
   this.branch = null;
@@ -330,15 +322,15 @@ Node.prototype.connect = function () {
     }
     return false;
   }).
-    filter(parent => { return parent; });
+    filter(parent => parent);
 };
 
 Node.prototype.setBranch = function (name) {
   if (!this.branch) {
     this.branch = name;
 
-    if (name === this.tree.primary && !this.tree.initial && this.parents.length === 0
-        && this.children.length) {
+    if (name === this.tree.primary && !this.tree.initial && this.parents.length === 0 &&
+        this.children.length) {
       this.tree.initial = this;
     }
 
@@ -414,9 +406,7 @@ Node.prototype.place = function() {
     descendant = descendant.descendant();
   }
 
-  if (this.children.filter((item) => {
-    return item.branch === this.branch;
-  }).length === 0) {
+  if (this.children.filter((item) => item.branch === this.branch).length === 0) {
     this.tree.slots.del(this.x, this.y, this.branch);
   }
 
@@ -460,7 +450,7 @@ function Griff ({
   colors, save = false, filename = 'graph.svg', labels = false,
   descriptions = false, shape = 'hexagon', titles = false, background = '#333',
   textColor = '#fff', size = 10, strokeWidth = 2, stashes = false, data = false,
-  startColor = '#42A5F5'
+  startColor = '#42A5F5',
 } = {}) {
   shape = shape !== 'hexagon' ? 'circle' : 'hexagon';
 
@@ -509,7 +499,7 @@ function Griff ({
         summary: node.summary,
         timestamp: node.timestamp,
         branch: node.branch,
-        stash: node.stash
+        stash: node.stash,
       };
 
       return details;
@@ -526,106 +516,102 @@ function Griff ({
     const svg = new SVG({ background });
 
     return openPromise.
-      then((repo) => {
-        return repo.head().
-          then((reference) => {
-            let name;
+      then((repo) => repo.head().
+        then((reference) => {
+          let name;
 
-            if (head) {
-              name = reference.name().replace('refs/heads/', '');
-            } else {
-              name = primary;
-            }
+          if (head) {
+            name = reference.name().replace('refs/heads/', '');
+          } else {
+            name = primary;
+          }
 
-            tree.setPrimary(name);
-            getColor(name);
+          tree.setPrimary(name);
+          getColor(name);
 
-            return repo.getReferences();
-          }).
-          then((references) => {
-            for (const reference of references) {
-              let name = reference.name();
-              let id = reference.target().toString();
-              if ((reference.isBranch() || name.startsWith('refs/remotes/origin/')) &&
+          return repo.getReferences();
+        }).
+        then((references) => {
+          for (const reference of references) {
+            let name = reference.name();
+            let id = reference.target().toString();
+            if ((reference.isBranch() || name.startsWith('refs/remotes/origin/')) &&
                   name !== 'refs/stash') {
-                const remote = name.includes('refs/remotes');
-                name = name.replace(/^refs\/heads\//, '').
-                  replace(/^refs\/remotes\//, '');
+              const remote = name.includes('refs/remotes');
+              name = name.replace(/^refs\/heads\//, '').
+                replace(/^refs\/remotes\//, '');
 
-                tree.branches.set(name, id);
-                tree.addReference(id, remote ? `{${ name }}` : `[${ name }]`);
-              } else if (reference.isTag()) {
-                if (reference.targetPeel()) {
-                  id = reference.targetPeel().toString();
-                }
-
-                name = name.replace(/^refs\/tags\//, '');
-                tree.tags.set(name, id);
-                tree.addReference(id, `<${ name }>`);
+              tree.branches.set(name, id);
+              tree.addReference(id, remote ? `{${ name }}` : `[${ name }]`);
+            } else if (reference.isTag()) {
+              if (reference.targetPeel()) {
+                id = reference.targetPeel().toString();
               }
+
+              name = name.replace(/^refs\/tags\//, '');
+              tree.tags.set(name, id);
+              tree.addReference(id, `<${ name }>`);
             }
-          }).
-          then(() => {
-            const revwalk = git.Revwalk.create(repo);
+          }
+        }).
+        then(() => {
+          const revwalk = git.Revwalk.create(repo);
 
-            revwalk.pushGlob('refs/heads/*');
-            revwalk.pushGlob('refs/remotes/*');
+          revwalk.pushGlob('refs/heads/*');
+          revwalk.pushGlob('refs/remotes/*');
 
-            revwalk.sorting(git.Revwalk.TOPOLOGICAL);
+          revwalk.sorting(git.Revwalk.TOPOLOGICAL);
 
-            return revwalk.getCommitsUntil((commit) => { return Boolean(commit); }).
-              then((commits) => {
-                commits.forEach((commit) => {
-                  return new Node(commit, tree);
-                });
-              });
-          }).
-          then(() => {
-            if (stashes) {
-              return git.Reflog.read(repo, 'refs/stash').
-                then((reflog) => {
-                  const stashIndex = new Map();
-                  const stashed = [];
-                  for (let index = 0; index < reflog.entrycount(); index++) {
-                    const entry = reflog.entryByIndex(index);
-                    const sha = entry.idNew().toString();
-                    const branch = `stash{${ index }}`;
-                    tree.branches.set(branch, sha);
-                    stashIndex.set(sha, branch);
-                    tree.addReference(sha, ` stash@{${ index }} `);
+          return revwalk.getCommitsUntil((commit) => Boolean(commit)).
+            then((commits) => {
+              commits.forEach((commit) => new Node(commit, tree));
+            });
+        }).
+        then(() => {
+          if (stashes) {
+            return git.Reflog.read(repo, 'refs/stash').
+              then((reflog) => {
+                const stashIndex = new Map();
+                const stashed = [];
+                for (let index = 0; index < reflog.entrycount(); index++) {
+                  const entry = reflog.entryByIndex(index);
+                  const sha = entry.idNew().toString();
+                  const branch = `stash{${ index }}`;
+                  tree.branches.set(branch, sha);
+                  stashIndex.set(sha, branch);
+                  tree.addReference(sha, ` stash@{${ index }} `);
 
-                    stashed.push(repo.getCommit(entry.idNew()));
-                  }
-                  return Promise.all(stashed).
-                    then((commits) => {
-                      const lookups = [];
-                      commits.forEach((commit) => {
-                        const node = new Node(commit, tree);
-                        const branch = stashIndex.get(node.sha);
-                        node.stash = true;
-                        node.branch = branch;
+                  stashed.push(repo.getCommit(entry.idNew()));
+                }
+                return Promise.all(stashed).
+                  then((commits) => {
+                    const lookups = [];
+                    commits.forEach((commit) => {
+                      const node = new Node(commit, tree);
+                      const branch = stashIndex.get(node.sha);
+                      node.stash = true;
+                      node.branch = branch;
 
-                        node.parents.forEach((parent) => {
-                          if (!tree.index.has(parent)) {
-                            lookups.push(repo.getCommit(parent).
-                              then((pcommit) => {
-                                const pnode = new Node(pcommit, tree);
-                                pnode.stash = true;
-                                if (node.parents.indexOf(pnode.sha) === 1) {
-                                  pnode.branch = `${ branch }/index`;
-                                }
-                                return pnode;
-                              }));
-                          }
-                        });
+                      node.parents.forEach((parent) => {
+                        if (!tree.index.has(parent)) {
+                          lookups.push(repo.getCommit(parent).
+                            then((pcommit) => {
+                              const pnode = new Node(pcommit, tree);
+                              pnode.stash = true;
+                              if (node.parents.indexOf(pnode.sha) === 1) {
+                                pnode.branch = `${ branch }/index`;
+                              }
+                              return pnode;
+                            }));
+                        }
                       });
-                      return Promise.all(lookups);
                     });
-                });
-            }
-            return true;
-          });
-      }).
+                    return Promise.all(lookups);
+                  });
+              });
+          }
+          return true;
+        })).
       then(() => {
         for (const [ , node ] of tree.index) {
           node.connect();
@@ -674,14 +660,14 @@ function Griff ({
         for (let l = 0; l < tree.slots.length; l++) {
           lines.unshift(svg.group({
             name: `lines-${ tree.slots.length - l }`,
-            strokeWidth
+            strokeWidth,
           }));
         }
 
         const dots = svg.group({
           name: 'dots',
           strokeWidth,
-          fill: background
+          fill: background,
         });
 
         let text;
@@ -692,7 +678,7 @@ function Griff ({
             fill: textColor,
             fontSize: `${ size }px`,
             fontWeight: '300',
-            fontFamily: 'monospace'
+            fontFamily: 'monospace',
           });
         }
 
@@ -721,7 +707,7 @@ function Griff ({
               x: 6,
               y: ny + 3,
               text: node.short.toUpperCase(),
-              dataSha: data ? node.sha : false
+              dataSha: data ? node.sha : false,
             });
           }
 
@@ -734,7 +720,7 @@ function Griff ({
             r: Math.floor(size / 2),
             stroke: getColor(node.branch),
             title: titles ? `[${ node.branch }] ${ node.short }: ${ node.safe }` : false,
-            dataSha: data ? node.sha : false
+            dataSha: data ? node.sha : false,
           });
 
           for (const child of node.children) {
@@ -757,7 +743,7 @@ function Griff ({
                 y2: cy,
                 stroke: getColor(child.branch),
                 fill: getColor(child.branch),
-                strokeDasharray: child.stash ? 1 : false
+                strokeDasharray: child.stash ? 1 : false,
               });
             } else {
               let d;
@@ -774,7 +760,7 @@ function Griff ({
                 d,
                 stroke,
                 fill: 'none',
-                strokeDasharray: child.stash ? 2 : false
+                strokeDasharray: child.stash ? 2 : false,
               });
             }
           }
@@ -820,7 +806,7 @@ function Griff ({
               x: nx + size + 2,
               y: ny + 2.5,
               text: description,
-              dataSha: data ? node.sha : false
+              dataSha: data ? node.sha : false,
             });
 
             width = Math.max(width, length * increment + nx + 12);

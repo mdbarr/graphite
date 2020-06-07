@@ -9,87 +9,87 @@ const options = require('yargs').
     background: {
       describe: 'svg background color',
       default: '#333',
-      type: 'string'
+      type: 'string',
     },
     data: {
       describe: 'include html data attributes on commits nodes in graph',
       default: false,
-      type: 'boolean'
+      type: 'boolean',
     },
     descriptions: {
       describe: 'include commit descriptions in graph',
       default: false,
-      type: 'boolean'
+      type: 'boolean',
     },
     filename: {
       describe: 'file name to use when saving results',
       default: 'graph.svg',
       normalize: true,
-      type: 'string'
+      type: 'string',
     },
     head: {
       describe: 'use the current HEAD instead of primary branch HEAD',
       default: false,
-      type: 'boolean'
+      type: 'boolean',
     },
     labels: {
       describe: 'label commits in graph',
       default: false,
-      type: 'boolean'
+      type: 'boolean',
     },
     limit: {
       describe: 'maximum number of commits to follow',
       default: Infinity,
-      type: 'number'
+      type: 'number',
     },
     primary: {
       describe: 'primary branch name',
       default: 'master',
-      type: 'string'
+      type: 'string',
     },
     repository: {
       describe: 'path to the git repository',
       default: process.cwd(),
       normalize: true,
-      type: 'string'
+      type: 'string',
     },
     save: {
       describe: 'save results to a file rather than printing to stdout',
       default: true,
       implies: 'filename',
-      type: 'boolean'
+      type: 'boolean',
     },
     shape: {
       describe: 'shape to draw for commits in graph',
       default: 'hexagon',
       choices: [ 'circle', 'hexagon' ],
-      type: 'string'
+      type: 'string',
     },
     size: {
       describe: 'size of graph rows in pixels',
       default: 10,
-      type: 'number'
+      type: 'number',
     },
     stashes: {
       describe: 'include stashes in graph',
       default: false,
-      type: 'boolean'
+      type: 'boolean',
     },
     strokeWidth: {
       describe: 'stroke width for svg elements in pixels',
       default: 2,
-      type: 'number'
+      type: 'number',
     },
     textColor: {
       describe: 'svg text color',
       default: '#FFF',
-      type: 'string'
+      type: 'string',
     },
     titles: {
       describe: 'include html title attributes on commit nodes in the graph',
       default: false,
-      type: 'boolean'
-    }
+      type: 'boolean',
+    },
   }).
   config().
   help('h').
