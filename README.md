@@ -1,2 +1,2 @@
-# young-griff
+# graphite
 Git Graph Visualization

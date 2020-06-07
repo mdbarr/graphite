@@ -445,7 +445,7 @@ Node.sorter = (a, b) => {
 
 //////////
 
-function Griff ({
+function Graphite ({
   repository = process.cwd(), primary = 'master', head = false, limit = Infinity,
   colors, save = false, filename = 'graph.svg', labels = false,
   descriptions = false, shape = 'hexagon', titles = false, background = '#333',
@@ -837,4 +837,4 @@ function Griff ({
   };
 }
 
-module.exports = Griff;
+module.exports = Graphite;
