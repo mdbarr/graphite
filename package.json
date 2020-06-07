@@ -1,5 +1,5 @@
 {
-  "name": "@mdbarr/griff",
+  "name": "@metastack/graphite",
   "version": "0.3.0",
   "description": "Git Graph Visualization",
   "main": "index.js",
