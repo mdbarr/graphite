@@ -326,16 +326,24 @@ Node.prototype.connect = function () {
 };
 
 Node.prototype.setBranch = function (name) {
-  if (!this.branch) {
-    this.branch = name;
+  let node = this;
 
-    if (name === this.tree.primary && !this.tree.initial && this.parents.length === 0 &&
-        this.children.length) {
-      this.tree.initial = this;
-    }
+  while (node) {
+    if (!node.branch) {
+      node.branch = name;
 
-    if (this.parents.length) {
-      this.parents[0].setBranch(name);
+      if (name === node.tree.primary && !node.tree.initial && node.parents.length === 0 &&
+        node.children.length) {
+        node.tree.initial = node;
+      }
+
+      if (node.parents.length) {
+        node = node.parents[0];
+      } else {
+        node = null;
+      }
+    } else {
+      node = null;
     }
   }
 };
