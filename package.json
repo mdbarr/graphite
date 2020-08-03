@@ -11,11 +11,11 @@
     "graphite": "./cli.js"
   },
   "dependencies": {
-    "nodegit": "^0.26.5",
-    "yargs": "^15.3.1"
+    "nodegit": "^0.27.0",
+    "yargs": "^15.4.1"
   },
   "devDependencies": {
-    "eslint": "^7.2.0"
+    "eslint": "^7.6.0"
   },
   "scripts": {
     "lint": "eslint *.js"
